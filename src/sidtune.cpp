@@ -6,12 +6,8 @@
 
 #include "config.h"
 
-#if defined(HAVE_IOMANIP)
-  #include <iomanip>
-  using std::ios;
-#else
-  #include <iomanip.h>
-#endif
+#include <iomanip>
+using std::ios;
 #include <string.h>
 #include <limits.h>
 
@@ -83,19 +79,7 @@ sidTune::sidTune( const char* fileName, const char **fileNameExt )
 	}
 	if (fileName != 0)
 	{
-#if !defined(NO_STDIN_LOADER)
-		// Filename ``-'' is used as a synonym for standard input.
-		if ( strcmp( fileName, "-" ) == 0 )
-		{
-			stdinConstructor();
-		}
-		else
-		{
-#endif
-			filesConstructor( fileName );
-#if !defined(NO_STDIN_LOADER)
-		}
-#endif
+		filesConstructor( fileName );
 		deleteFileBuffers();
 	}
 }
@@ -108,20 +92,8 @@ sidTune::sidTune(const char* fileName, const bool separatorIsSlash,
 	setFileNameExtensions(fileNameExt);
 	if (fileName != 0)
 	{
-#if !defined(NO_STDIN_LOADER)
-		// Filename ``-'' is used as a synonym for standard input.
-		if ( strcmp( fileName, "-" ) == 0 )
-		{
-			stdinConstructor();
-		}
-		else
-		{
-#endif
-			filesConstructor( fileName );
-			deleteFileBuffers();
-#if !defined(NO_STDIN_LOADER)
-		}
-#endif
+		filesConstructor( fileName );
+		deleteFileBuffers();
 	}
 }
 
@@ -530,30 +502,6 @@ void sidTune::safeDestructor()
 
 	status = false;
 }
-
-
-#if !defined(NO_STDIN_LOADER)
-
-void sidTune::stdinConstructor()
-{
-	// Assume a failure, so we can simply return.
-	status = false;
-	// Assume the memory allocation to fail.
-	info.statusString = text_notEnoughMemory;
-	if (( fileBuf = new ubyte[maxSidtuneFileLen] ) == 0 )
-		return;
-	udword i = 0;
-	ubyte datb;
-	// We only read as much as fits in the buffer.
-	// This way we avoid choking on huge data.
-	while (cin.get(datb) && i<maxSidtuneFileLen)
-		fileBuf[i++] = datb;
-	info.dataFileLen = i;
-    getSidtuneFromFileBuffer(fileBuf,info.dataFileLen);
-}
-
-#endif
-
 
 void sidTune::bufferConstructor(const ubyte* data, udword dataLen)
 {

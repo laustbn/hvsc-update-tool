@@ -6,7 +6,6 @@
 #define MYENDIAN_H
 
 
-#include "compconf.h"
 #include "mytypes.h"
 
 // This should never be true.

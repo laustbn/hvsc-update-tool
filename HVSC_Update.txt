@@ -4,7 +4,7 @@
              ===================================================
 
                                    version
-                                    2.8.7
+                                    2.8.8
 
 AUTHORS:
 The Shark <shark (sid) dhp.com>
@@ -18,13 +18,14 @@ iAN CooG <iancoog (sid) alice.it>
     (v2.8.6 modifications for HVSC.txt check)
     (v2.8.7 modifications for operator precedence warning in Update.cpp
             modifications for v4 file format)
-
+Laust Brock-Nannestad
+    (v2.8.8 replace autotools with CMake and some clean up of codebase)
 
 INTRODUCTION
 ============
 
 In order to provide a clean and easy way to update the High Voltage SID
-Collection (HVSC - http://www.hvsc.c64.org) from time to time, an HVSC Update
+Collection (HVSC - https://www.hvsc.c64.org) from time to time, an HVSC Update
 pack is provided to users. It contains an Update script, which describes how
 the update should be performed, plus a bunch of SID files in PSID v2NG format
 that will be moved to their final location inside HVSC as described in the

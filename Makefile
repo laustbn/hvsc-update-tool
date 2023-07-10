@@ -1,34 +1,28 @@
 
-srcdirs 		= src
-
-.PHONY: all
-all:
-		@for subdir in $(srcdirs); do \
-			(cd $$subdir && $(MAKE) all) || exit 1; \
-		done
-
-Update.static:
-		@for subdir in $(srcdirs); do \
-			(cd $$subdir && $(MAKE) Update.static) || exit 1; \
-		done
+.PHONY: build
+build: build/native
 
 .PHONY: clean
 clean:
-		@for subdir in $(srcdirs); do \
-			(cd $$subdir && $(MAKE) clean) || exit 1; \
-		done
+	rm -rf build
 
-.PHONY: distclean
-distclean:
-		$(RM) -f config.cache config.status config.log
-		$(RM) -f Makefile *.d *.o *.bak *~
-		@for subdir in $(srcdirs); do \
-			(cd $$subdir && $(MAKE) distclean) || exit 1; \
-		done
+configure/native:
+	mkdir -p build/native
+	cd build/native && cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
 
-.PHONY: depend
-depend:
-		@for subdir in $(srcdirs); do \
-			(cd $$subdir && $(MAKE) depend) || exit 1; \
-		done
+build/native: configure/native
+	cd build/native && cmake --build .
+
+# Cross compilation
+configure/windows:
+	mkdir -p build/windows
+	cd build/windows && cmake -DCMAKE_SYSTEM_NAME=Windows \
+	  -DCMAKE_BUILD_TYPE=MinSizeRel \
+      -DCMAKE_C_COMPILER=i686-w64-mingw32-gcc \
+      -DCMAKE_CXX_COMPILER=i686-w64-mingw32-g++ \
+	  -DCMAKE_EXE_LINKER_FLAGS="-static" \
+      ../..
+
+build/windows: configure/windows
+	cd build/windows && cmake --build .
 

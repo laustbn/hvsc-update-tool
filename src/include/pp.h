@@ -8,12 +8,8 @@
 
 #include "config.h"
 
-#if defined(HAVE_FSTREAM)
-  #include <fstream>
-  using std::ifstream;
-#else
-  #include <fstream.h>
-#endif
+#include <fstream>
+using std::ifstream;
 #include "mytypes.h"
 
 extern bool depp(ifstream& inputFile, ubyte** destBufRef);

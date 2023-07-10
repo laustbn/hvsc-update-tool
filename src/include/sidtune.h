@@ -12,12 +12,9 @@
 
 #include "config.h"
 
-#if defined(HAVE_FSTREAM)
-  #include <fstream>
-  using std::ofstream;
-#else
-  #include <fstream.h>
-#endif
+#include <fstream>
+using std::ofstream;
+
 #include "mytypes.h"
 
 const uint classMaxSongs = 256;	  // also file format limit
@@ -274,9 +271,6 @@ class sidTune
 
 	void safeConstructor();
 	void safeDestructor();
-#if !defined(NO_STDIN_LOADER)
-	void stdinConstructor();
-#endif
 	void filesConstructor(const char* name);
 		void bufferConstructor(const ubyte* data, udword dataLen);
 

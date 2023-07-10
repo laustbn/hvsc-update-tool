@@ -1,7 +1,5 @@
 #include "FileExists.h"
 
-#include "config.h"
-
 #undef HVSC_USE_STAT
 #ifdef HAVE_UNISTD_H
 #ifdef HAVE_SYS_TYPES_H

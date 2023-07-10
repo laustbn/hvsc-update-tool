@@ -1,17 +1,10 @@
 #ifndef fastperc_h
 #define fastperc_h
 
-#include "config.h"
-#if defined(HAVE_IOSTREAM)
-  #include <iostream>
-  using std::cout;
-  using std::dec;
-  using std::setw;
-  using std::setfill;
-  using std::flush;
-#else
-  #include <iostream.h>
-#endif
+#include <iostream>
+using std::cout;
+using std::dec;
+using std::flush;
 
 class fastPercent
 {

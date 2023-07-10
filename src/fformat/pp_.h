@@ -8,18 +8,12 @@
 
 #include "config.h"
 
-#if defined(HAVE_FSTREAM)
-  #include <fstream>
-  using std::ifstream;
-#else
-  #include <fstream.h>
-#endif
-#if defined(HAVE_IOSTREAM)
-  #include <iostream>
-  using std::ios;
-#else
-  #include <iostream.h>
-#endif
+#include <fstream>
+using std::ifstream;
+
+#include <iostream>
+using std::ios;
+
 #include <string.h>
 #include <limits.h>
 #include "mytypes.h"

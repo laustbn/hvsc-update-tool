@@ -6,21 +6,6 @@
 #define MYTYPES_H
 
 
-#include "compconf.h"
-
-// A ``bool'' type for compilers that don't (yet) support one.
-#ifndef HAVE_BOOL
-  typedef int bool;
-
-  #if defined(true) || defined(false)
-    #error Better check include file ``mytypes.h''.
-    #undef true
-    #undef false
-  #endif
-  #define true 1
-  #define false 0
-#endif
-
 
 // Wanted: 8-bit signed/unsigned.
 typedef signed char sbyte;

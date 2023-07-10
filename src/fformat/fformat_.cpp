@@ -4,6 +4,7 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <filesystem>
 
 #include "fformat.h"
 #include "myendian.h"
@@ -22,24 +23,18 @@ char* myStrDup(const char *source)
 // Return pointer to file name position in complete path.
 char* fileNameWithoutPath(char* s)
 {
-	int last_slash_pos = -1;
-	for ( uint pos = 0; pos < strlen(s); pos++ )
-	{
-#if defined(FS_IS_COLON_AND_BACKSLASH)
-		if ( s[pos] == ':' || s[pos] == '\\' )
-#elif defined(FS_IS_COLON_AND_SLASH)
-		if ( s[pos] == ':' || s[pos] == '/' )
-#elif defined(FS_IS_SLASH)
-        if ( s[pos] == '/' )
-#elif defined(FS_IS_BACKSLASH)
-		if ( s[pos] == '\\' )
-#elif defined(FS_IS_COLON)
-		if ( s[pos] == ':' )
+#if _MSVC_LANG >= 201703L
+	const char sep = std::filesystem::path::preferred_separator;
 #else
-#error Missing file/path separator definition in config.h.
+	const char sep = '\\';
 #endif
+	int last_slash_pos = -1;
+	for ( int pos = strlen(s); pos >= 0; pos-- )
+	{
+		if ( s[pos] == sep)
 		{
 			last_slash_pos = pos;
+			break;
 		}
 	}
 	return( &s[last_slash_pos +1] );
@@ -78,11 +73,7 @@ char* fileExtOfPath(char* s)
 
 // Parse input string stream. Read and convert a hexa-decimal number up 
 // to a ``,'' or ``:'' or ``\0'' or end of stream.
-#if defined(HAVE_SSTREAM)
 udword readHex( istringstream& hexin )
-#else
-udword readHex( istrstream& hexin )
-#endif
 {
 	udword hexLong = 0;
 	char c;
@@ -111,11 +102,7 @@ udword readHex( istrstream& hexin )
 
 // Parse input string stream. Read and convert a decimal number up 
 // to a ``,'' or ``:'' or ``\0'' or end of stream.
-#if defined(HAVE_SSTREAM)
 udword readDec( istringstream& decin )
-#else
-udword readDec( istrstream& decin )
-#endif
 {
 	udword hexLong = 0;
 	char c;
@@ -172,11 +159,7 @@ const char* returnNextLine(const char* s)
 }
 
 // Skip any characters in an input string stream up to '='.
-#if defined(HAVE_SSTREAM)
 void skipToEqu( istringstream& parseStream )
-#else
-void skipToEqu( istrstream& parseStream )
-#endif
 {
 	char c;
 	do

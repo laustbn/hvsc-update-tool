@@ -20,8 +20,8 @@
 
 #endif
 
-// Alternatives to std::filesystem. 
-#if defined(_MSC_VER) && _MSC_VER < 201703L
+// Alternatives to std::filesystem.
+#if defined(_MSC_VER) && _MSVC_LANG < 201703L
 #include <direct.h>
 #define PATH_SEPARATOR '\\'
 static bool filesystem_remove(const char *name) {

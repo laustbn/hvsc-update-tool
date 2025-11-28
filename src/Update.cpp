@@ -80,6 +80,7 @@ static const char SHORT_HUBBARD_ROB_DIR[] = "HUBBARD";
 
 // The main HVSC doc file is read by the revision check code.
 static const char HVSIDS_TXT[] = "HVSC.txt";
+static const char OLD_HVSIDS_TXT[] = "hv_sids.txt";
 
 static const char* DOCUMENTS_DIR = LONG_DOCUMENTS_DIR;
 static const char* HUBBARD_ROB_DIR = LONG_HUBBARD_ROB_DIR;
@@ -304,31 +305,37 @@ int main(int, char* argv[])
     // and check for the line which contains the version number.
 
     PathCreator hvsidsFileName, hvsidsFileNameTmp;
-    sprintf(hvsidsFileNameTmp.getWritable(),
-            "%s/%s",DOCUMENTS_DIR,HVSIDS_TXT);
-    if (getHVSCpath(hvsidsFileName,hvsidsFileNameTmp.get()))
-    {
-        TextFile hvsidsFile(hvsidsFileName.get());
-        int line = 0;
-        while (!hvsidsFile.endOfFile() && line<=10)
-        {
-            hvsidsFile.readNextLine();
-            line++;
-            if (hvsidsFile.isKey("release")) {
-                HVSCversion.found = atohvscver(hvsidsFile.getCurParseBuf());
-                HVSCversion_found = HVSCversion.found;
-            }
-        }
-        hvsidsFile.close();
-    }
-    else
-    {
-        cerr
-            << "Warning: HVSC documentation file ``"
-            << HVSIDS_TXT << "'' not found." << endl
-        << endl;
-        HVSCversion.printWarning = true;
-    }
+    auto fileNames = {HVSIDS_TXT, OLD_HVSIDS_TXT};
+	bool found = false;
+    for (auto const &f : fileNames) {
+		sprintf(hvsidsFileNameTmp.getWritable(),
+				"%s/%s",DOCUMENTS_DIR,f);
+		if (getHVSCpath(hvsidsFileName,hvsidsFileNameTmp.get()))
+		{
+			TextFile hvsidsFile(hvsidsFileName.get());
+			int line = 0;
+			while (!hvsidsFile.endOfFile() && line<=10)
+			{
+				hvsidsFile.readNextLine();
+				line++;
+				if (hvsidsFile.isKey("release")) {
+					HVSCversion.found = atohvscver(hvsidsFile.getCurParseBuf());
+					HVSCversion_found = HVSCversion.found;
+				}
+			}
+			hvsidsFile.close();
+			found = true;
+			break;
+		}
+	}
+	if (!found)
+	{
+		cerr
+				<< "Warning: HVSC documentation file ``"
+				<< HVSIDS_TXT << "'' or ''" << OLD_HVSIDS_TXT << "'' not found." << endl
+				<< endl;
+		HVSCversion.printWarning = true;
+	}
 
     // ----------------------------------------------------------------------
 

@@ -135,6 +135,14 @@ bool myMkDir(const char* dirName);
 
 bool isDir(const char* fileName);
 
+// Returns false if user prompting is disabled by setting the HVSC_NO_PROMPT
+// environment variable. This is to facilitate automated testing.
+bool prompt_user()
+{
+  auto str = std::getenv("HVSC_NO_PROMPT");
+  return str == nullptr;
+}
+
 // --------------------------------------------------------------------------
 // OS-dependent application exit() wrapper.
 
@@ -161,7 +169,8 @@ inline void appExit(int returnValue)
         FlushConsoleInputBuffer(hStdin);
         DWORD count;
         char readBuf[2];
-        ReadConsole(hStdin,&readBuf,1,&count,0);
+        if (prompt_user())
+			ReadConsole(hStdin, &readBuf, 1, &count, 0);
         SetConsoleMode(hStdin, fdwOldMode);
     }
 #endif
@@ -169,14 +178,6 @@ inline void appExit(int returnValue)
 }
 
 // --------------------------------------------------------------------------
-
-// Returns false if user prompting is disabled by setting the HVSC_NO_PROMPT
-// environment variable. This is to facilitate automated testing.
-bool prompt_user()
-{
-	auto str = std::getenv("HVSC_NO_PROMPT");
-	return str == nullptr;
-}
 
 int main(int, char* argv[])
 {

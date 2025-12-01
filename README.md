@@ -52,8 +52,6 @@ Notable changes since 2.8.7:
 
 ## Outstanding issues
 
- + This repository currently doesn't have a license as there was none in the
-   archive. Presumably it's GPL.
  + Generating a Visual Studio project from the CMake configuration should be
    possible but hasn't been tested.
  + The code would benefit from a rewriting and running through a formatter. In

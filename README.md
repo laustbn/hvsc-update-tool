@@ -61,12 +61,12 @@ Notable changes since 2.8.7:
    continues to work and is well tested (see below).
  + A Windows executable can be cross compiled using an open source tool
    chain. It clocks in at ~1 MByte for a static binary (or <200 KB for a
-   dynamic, but needs the MINGW runtime). Windows doesn't like the binary and
-   will prompt for UAE escalation every time it's run. I didn't look into
-   this. It does work, though.
+   dynamic, but needs the MINGW runtime). This lacks a manifest, meaning Windows
+   will prompt for UAE escalation when the filename contains `update`. It
+   does work, though. The manifest is added when building with MSVC.
  + The test harness hasn't been tested on Windows, only using Wine. It might
    require changes or might work out of the box in an appropriate environment,
-   e.g. Cygwin.
+   e.g. Cygwin or similar.
 
 ## Testing
 

@@ -16,7 +16,7 @@ clean:
 .PHONY: configure/native
 configure/native:
 	mkdir -p build/native
-	cd build/native && cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
+	cd build/native && cmake -DCMAKE_BUILD_TYPE=Debug ../..
 
 build/native: configure/native
 	cd build/native && cmake --build . --parallel 4

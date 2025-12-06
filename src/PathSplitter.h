@@ -2,6 +2,9 @@
 
 #include <string.h>
 
+#include <filesystem>
+#include <iterator>
+
 #include "max.h"
 
 class PathSplitter {
@@ -18,13 +21,17 @@ class PathSplitter {
   int splitOffset;      // offset to current directory in path
   int lastSplitOffset;  // offset to last directory in path
 
-  bool validInput;
+  // New implementation
+  std::unique_ptr<std::filesystem::path> path;
+  std::filesystem::path::iterator it;
+  std::filesystem::path::iterator last;
 
  public:
   PathSplitter(const char* pathName);
+  PathSplitter(const std::filesystem::path* path);
   ~PathSplitter(void);
 
-  const char* getFile(void);
+  const std::string getFile(void);
 
   bool isGood(void);
   bool isLastFile(void);

@@ -37,9 +37,9 @@ def which(exe):
 def unrar(*args):
     if not hasattr(unrar, "exe"):
         if which("rar"):
-            unrar.exe = ["rar", "x", "-y"]
+            unrar.exe = ["rar", "x", "-y", "-inul"]
         elif which("unrar"):
-            unrar.exe = ["unrar", "x", "-y"]
+            unrar.exe = ["unrar", "x", "-y", "-inul"]
         else:
             raise Exception("RAR unpacker not found")
     return subprocess.run(unrar.exe + list(args)).returncode
@@ -100,6 +100,7 @@ def unpack_all_in_one(version, where):
         return
     os.mkdir(where)
     with chdir(where):
+        print(f"Unpack {filename}")
         unrar(f"../{filename}")
 
 
@@ -152,7 +153,7 @@ def prepare(versions):
         file.write(hashes_str)
 
 
-def perform_update(version, exe, use_wine):
+def perform_update(version, exe, use_wine, use_debugger):
     download_update(MIRROR, version)
     test_dir = "test"
     with chdir(test_dir):
@@ -161,11 +162,14 @@ def perform_update(version, exe, use_wine):
             if use_wine:
                 subprocess.run(["wine", exe], check=True)
             else:
-                subprocess.run([exe], check=True)
+                args = [exe]
+                if use_debugger:
+                    args = ["lldb", "--batch", "-o", "run", "--"] + args
+                subprocess.run(args, check=True)
         return generate_hash(".")
 
 
-def run_test(versions, exe, use_wine=False):
+def run_test(versions, exe, use_wine=False, use_debugger=False):
     with open(REF, "r") as file:
         hashes = json.load(file)
 
@@ -186,7 +190,7 @@ def run_test(versions, exe, use_wine=False):
         os.environ["HVSC_NO_PROMPT"] = "1"
         try:
             for v in versions[1:]:
-                h = perform_update(v, exe, use_wine)
+                h = perform_update(v, exe, use_wine, use_debugger)
                 if h != hashes[f"{v}"]:
                     raise Exception(
                         f"Hash mismatch. Got {h}, expected {hashes[f"{v}"]}"
@@ -237,6 +241,14 @@ def main():
         default=False,
         help="Setup Wine prefix and invoke via Wine.",
     )
+
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Wrap update tool in debugger (with autostart)",
+    )
+
     parser.add_argument("action", help="test|prepare")
 
     args = parser.parse_args()
@@ -255,9 +267,9 @@ def main():
             subprocess.run(["wineboot", "--shutdown"])
             shutil.rmtree(os.environ["WINEPREFIX"])
             subprocess.run(["wineboot"])
-        run_test(versions, abs_exe, args.wine)
+        run_test(versions, abs_exe, args.wine, args.debug)
     else:
-        print("Must specify action")
+        print(f"Must specify action")
         exit(1)
 
 

@@ -11,7 +11,8 @@ using std::ios;
 #include <limits.h>
 #include <string.h>
 
-#include "FileExists.h"
+#include <filesystem>
+
 #include "fformat.h"
 #include "myendian.h"
 #include "pp.h"
@@ -599,7 +600,7 @@ bool sidTune::saveC64dataFile(const char* fileName, bool overWriteFlag) {
   // This prevents saving from a bad object.
   if (status) {
     ofstream fMyOut;
-    if (!overWriteFlag && fileExists(fileName)) {
+    if (!overWriteFlag && std::filesystem::is_regular_file(fileName)) {
       info.statusString = text_cantCreateFile;
       return success;
     }
@@ -638,12 +639,12 @@ bool sidTune::saveSIDfile(const char* fileName, bool overWriteFlag) {
   return success;
 }
 
-bool sidTune::savePSIDfile(const char* fileName, bool overWriteFlag) {
+bool sidTune::savePSIDfile(std::filesystem::path fileName, bool overWriteFlag) {
   bool success = false;  // assume error
   // This prevents saving from a bad object.
   if (status) {
     ofstream fMyOut;
-    if (!overWriteFlag && fileExists(fileName)) {
+    if (!overWriteFlag && std::filesystem::is_regular_file(fileName)) {
       info.statusString = text_cantCreateFile;
       return success;
     }

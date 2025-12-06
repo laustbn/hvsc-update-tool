@@ -188,7 +188,8 @@ class sidTune {
   // returns: true = Successful, false = Error condition.
   bool saveC64dataFile(const char* destFileName, bool overWriteFlag = false);
   bool saveSIDfile(const char* destFileName, bool overWriteFlag = false);
-  bool savePSIDfile(const char* destFileName, bool overWriteFlag = false);
+  bool savePSIDfile(std::filesystem::path destFileName,
+                    bool overWriteFlag = false);
 
   // This function can be used to remove a duplicate C64 load address in
   // the C64 data (example: FE 0F 00 10 4C ...). A duplicate load address

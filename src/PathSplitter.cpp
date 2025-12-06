@@ -1,7 +1,33 @@
 #include "PathSplitter.h"
 
+#include <memory>
+
+// This is a mostly redundant wrapper around filesystem::path to give it the
+// semantics the existing code expects. The logic here should probably be folded
+// into the places where it's called.
+PathSplitter::PathSplitter(const std::filesystem::path* path)
+    : maxPathLen(1), path(std::make_unique<std::filesystem::path>(*path)) {
+  // TODO: only a pointer until we get rid of old version. Copy it rather than
+  // reference because we modify it.
+  // fs::path has an empty last element if path ends in slash. Trim that.
+  if ((*(--path->end())).empty()) {
+    this->path = std::make_unique<std::filesystem::path>((*path).parent_path());
+  }
+  it = ++this->path->begin();
+  splitPath.ptr = 0;
+
+  // Determine element before end(). Backwards iteration didn't work reliably
+  // for me!
+  while (it != this->path->end()) {
+    last = it;
+    it++;
+  }
+  firstFile();
+}
+
+// No longer called.
 PathSplitter::PathSplitter(const char* pathName)
-    : maxPathLen(maxCharBufferLen) {
+    : maxPathLen(maxCharBufferLen), path(nullptr) {
   splitPath.len = 0;
 
   // Allocate working buffer.
@@ -43,11 +69,28 @@ PathSplitter::~PathSplitter(void) {
   if (splitPath.ptr != 0) delete[] splitPath.ptr;
 }
 
-const char* PathSplitter::getFile(void) { return splitPath.ptr + splitOffset; }
+const std::string PathSplitter::getFile(void) {
+  if (path && it == path->end()) return std::string{};
+  if (path) {
+    // It seems MSVC does not automatically convert to string...
+    return std::string{(*it).filename().generic_string()};
+  }
 
-bool PathSplitter::isGood(void) { return (splitPath.len != 0); }
+  return std::string(splitPath.ptr + splitOffset);
+}
+
+bool PathSplitter::isGood(void) {
+  if (path) return !path->empty();
+  return (splitPath.len != 0);
+}
 
 void PathSplitter::firstFile(void) {
+  if (path) {
+    // Skip the first one as it is `/`
+    it = ++path->begin();
+    return;
+  }
+
   splitOffset = 0;
 
   // Skip to next file name.
@@ -56,10 +99,26 @@ void PathSplitter::firstFile(void) {
   };
 }
 
-void PathSplitter::lastFile(void) { splitOffset = lastSplitOffset; }
+void PathSplitter::lastFile(void) {
+  if (path) {
+    it = last;
+    return;
+  }
+
+  splitOffset = lastSplitOffset;
+}
 
 bool PathSplitter::nextFile(void) {
-  if (splitPath.ptr[splitOffset] == 0) return false;  // no next file
+  if (path) {
+    if (it == path->end()) {
+      return false;
+    }
+    it++;
+    if (it == last || it == path->end()) return false;
+
+    return true;
+  }
+  return false;  // no next file
 
   // Skip current file name.
   while ((splitOffset < splitPath.len) && (splitPath.ptr[splitOffset] != 0)) {
@@ -74,4 +133,11 @@ bool PathSplitter::nextFile(void) {
   return (splitOffset < splitPath.len);
 }
 
-bool PathSplitter::isLastFile(void) { return (splitOffset == lastSplitOffset); }
+bool PathSplitter::isLastFile(void) {
+  if (path) {
+    if (it == path->end()) return false;
+
+    return it == last;
+  }
+  return (splitOffset == lastSplitOffset);
+}

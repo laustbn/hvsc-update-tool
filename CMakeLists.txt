@@ -10,6 +10,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS On)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fno-inline -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-elide-constructors")
+
 add_subdirectory(src)
 
 add_executable(hvsc_update_tool src/Update.cpp)
@@ -17,14 +19,12 @@ configure_file(src/update_tool_version.h.in update_tool_version.h)
 target_link_libraries(hvsc_update_tool PRIVATE libupdate)
 target_include_directories(hvsc_update_tool PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
-# Add custom dirent for MVSC
+# Windows specific configuration
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  target_sources(hvsc_update_tool PRIVATE vs2003/dirent.c)
-  target_include_directories(hvsc_update_tool PRIVATE "vs2003")
   configure_file(src/update_tool.manifest.in update_tool.manifest)
   target_link_libraries(hvsc_update_tool PRIVATE -manifest:embed -manifestinput:"${CMAKE_CURRENT_BINARY_DIR}/update_tool.manifest")
 else()
   # Strip the binary
-  add_custom_command(TARGET hvsc_update_tool POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:hvsc_update_tool>)
+  # add_custom_command(TARGET hvsc_update_tool POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:hvsc_update_tool>)
 endif()
 

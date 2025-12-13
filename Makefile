@@ -1,3 +1,10 @@
+# For .ONESHELL
+ifneq ($(firstword $(sort 4.0 $(MAKE_VERSION))),4.0)
+$(error This Makefile requires GNU Make 4.0 or newer)
+endif
+
+CLANG_FORMAT ?= clang-format
+CLANG_TIDY ?= clang-tidy
 
 .PHONY: build
 build: build/native
@@ -12,7 +19,7 @@ configure/native:
 	cd build/native && cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../..
 
 build/native: configure/native
-	cd build/native && cmake --build .
+	cd build/native && cmake --build . --parallel 4
 
 # Cross compilation using GCC
 .PHONY: configure/windows
@@ -39,3 +46,18 @@ configure/wine-windows:
 build/wine-windows: configure/wine-windows
 	cd build/wine-windows && cmake --build .
 
+EXTENSIONS=*.cpp *.cc *.cxx *.c *.h *.hpp *.hxx
+
+.PHONY: format
+.ONESHELL: format
+format:
+	for ext in ${EXTENSIONS}; do
+	    git ls-files "$$ext"
+	done | sort -u | while read -r file; do
+	    ${CLANG_FORMAT} -i "$$file"
+	done
+
+.PHONY: tidy
+.ONESHELL: tidy
+tidy:
+	run-${CLANG_TIDY} -j4 -p build/native -clang-tidy-binary ${CLANG_TIDY}

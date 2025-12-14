@@ -6,79 +6,57 @@ using std::cout;
 using std::dec;
 using std::flush;
 
-class fastPercent
-{
+class fastPercent {
  public:
-	
-    void init(int max, bool inChokeCheck = false)
-    {
-        onePercent = nextPercentMark = max/(float)100.0;
-        percent = prevPercent = 0;
-        chokeCheck = inChokeCheck;
-	};
+  void init(int max, bool inChokeCheck = false) {
+    onePercent = nextPercentMark = max / (float)100.0;
+    percent = prevPercent = 0;
+    chokeCheck = inChokeCheck;
+  };
 
-    fastPercent(int max, bool inChokeCheck = false)
-    {
-        init(max,inChokeCheck);
-    };
+  fastPercent(int max, bool inChokeCheck = false) { init(max, inChokeCheck); };
 
-    void update(int current)
-    {
-        while (current >= nextPercentMark)
-        {
-            if (percent < 100)
-                percent++;
-            nextPercentMark += onePercent;
-        }
-    };
+  void update(int current) {
+    while (current >= nextPercentMark) {
+      if (percent < 100) percent++;
+      nextPercentMark += onePercent;
+    }
+  };
 
-    bool changed(void)
-    {
-        return (prevPercent!=percent);
-    };
+  bool changed(void) { return (prevPercent != percent); };
 
-    int get(void)
-    {
-        if (chokeCheck && onePercent>=512)
-        {
-            if (prevPercent != percent)
-            {
-                prevPercent = percent;
-            }
-        }
-        else
-        {
-            if ( prevPercent <= percent )
-            {
-                prevPercent = percent + 10;
-            }
-        }
-        return percent;
-    };
-
-    void cout(void)
-    {
-        ::cout << dec << setw(3) << setfill(' ') << percent << "%" << flush;
-    };
-	
-    void coutUpdate(void)
-    {
+  int get(void) {
+    if (chokeCheck && onePercent >= 512) {
+      if (prevPercent != percent) {
         prevPercent = percent;
-        ::cout << "\b\b\b\b";
-        cout();
-    };
+      }
+    } else {
+      if (prevPercent <= percent) {
+        prevPercent = percent + 10;
+      }
+    }
+    return percent;
+  };
 
-    void end(void)
-    {
-        percent = 100;
-        coutUpdate();
-    };
+  void cout(void) {
+    ::cout << dec << setw(3) << setfill(' ') << percent << "%" << flush;
+  };
+
+  void coutUpdate(void) {
+    prevPercent = percent;
+    ::cout << "\b\b\b\b";
+    cout();
+  };
+
+  void end(void) {
+    percent = 100;
+    coutUpdate();
+  };
 
  protected:
-	
-    float onePercent, nextPercentMark;
-    int percent, prevPercent;
-    bool chokeCheck;
+  float onePercent, nextPercentMark;
+  int percent, prevPercent;
+  bool chokeCheck;
 };
 
 #endif  // fastperc_h

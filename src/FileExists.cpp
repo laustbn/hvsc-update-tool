@@ -5,8 +5,8 @@
 #ifdef HAVE_SYS_TYPES_H
 #ifdef HAVE_SYS_STAT_H
 #define HVSC_USE_STAT
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #endif
 #endif
@@ -15,17 +15,14 @@
 #include <stdio.h>
 #endif
 
-bool fileExists( const char* fileName )
-{
+bool fileExists(const char* fileName) {
 #ifdef HVSC_USE_STAT
-    struct stat fileStat;
-    return ( stat( fileName, &fileStat ) == 0  &&
-         S_ISREG( fileStat.st_mode )  );
+  struct stat fileStat;
+  return (stat(fileName, &fileStat) == 0 && S_ISREG(fileStat.st_mode));
 #else
-    FILE* f = fopen( fileName, "r+b" );
-    bool exists = (f!=NULL);
-    if ( exists )
-        fclose( f );
-    return exists;
+  FILE* f = fopen(fileName, "r+b");
+  bool exists = (f != NULL);
+  if (exists) fclose(f);
+  return exists;
 #endif
 }

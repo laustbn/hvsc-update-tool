@@ -54,8 +54,7 @@
 extern "C" {
 #endif
 
-struct dirent
-{
+struct dirent {
   long d_ino;
   off_t d_off;
   unsigned short int d_reclen;
@@ -70,13 +69,13 @@ struct dirent
 
 typedef struct dirstream DIR;
 
-DIR * opendir (const char * name);
-struct dirent * readdir (DIR * dir);
-int closedir (DIR * dir);
-void rewinddir (DIR * dir);
-void seekdir (DIR * dir, off_t offset);
-off_t telldir (DIR * dir);
-int dirfd (DIR * dir);
+DIR* opendir(const char* name);
+struct dirent* readdir(DIR* dir);
+int closedir(DIR* dir);
+void rewinddir(DIR* dir);
+void seekdir(DIR* dir, off_t offset);
+off_t telldir(DIR* dir);
+int dirfd(DIR* dir);
 
 #define S_ISDIR(st_mode) (st_mode & S_IFDIR)
 #define S_ISREG(st_mode) (st_mode & S_IFREG)

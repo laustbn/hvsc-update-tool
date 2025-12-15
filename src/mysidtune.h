@@ -1,12 +1,14 @@
 #ifndef mysidtune_h
 #define mysidtune_h
 
+#include "Mode.h"
+
 class mySidTune : public sidTune {
  public:  // --------------------------------------------------------- public
   // Only derive the simple constructor.
-  mySidTune(const char* fileName) : sidTune(fileName){};
+  mySidTune(const char* fileName) : sidTune(fileName) {};
 
-  bool writeToSidTune(char newInfoString[][maxSidInfoLen + 1], mode_type mode) {
+  bool writeToSidTune(char newInfoString[][maxSidInfoLen + 1], Mode mode) {
     // PSID-format can only handle up to 31 characters plus a terminating zero.
     //
     // The infoStrings are kept without any special order in a two-dimensional
@@ -22,18 +24,18 @@ class mySidTune : public sidTune {
     int infoStringIndex = 0;  // Used for FLAGS case.
 
     switch (mode) {
-      case TITLE:
-      case AUTHOR:
-      case RELEASED: {
+      case Mode::TITLE:
+      case Mode::AUTHOR:
+      case Mode::RELEASED: {
         // Copy string to private array.
         strcpy(&infoString[(int)mode][0], newInfoString[(int)mode]);
 
         info.infoString[(int)mode] = &infoString[(int)mode][0];
 
-        if (TITLE == mode)
+        if (Mode::TITLE == mode)
           // Assign pointer: First infoString usually is NAME.
           info.nameString = &infoString[(int)mode][0];
-        else if (AUTHOR == mode)
+        else if (Mode::AUTHOR == mode)
           // Assign pointer: Second infoString usually is AUTHOR.
           info.authorString = &infoString[(int)mode][0];
         else
@@ -43,7 +45,7 @@ class mySidTune : public sidTune {
         break;
       }
 
-      case CREDITS: {
+      case Mode::CREDITS: {
         if ('*' != newInfoString[0][0]) {
           strcpy(&infoString[0][0], newInfoString[0]);
           info.nameString = &infoString[0][0];
@@ -62,7 +64,7 @@ class mySidTune : public sidTune {
         break;
       }
 
-      case SPEED: {
+      case Mode::SPEED: {
         unsigned long ulSpeed;
 
         // Only 32 song speed can be set with the below code assuming
@@ -78,7 +80,7 @@ class mySidTune : public sidTune {
           return false;
       }
 
-      case SONGS:  // SONGS string must have a comma!
+      case Mode::SONGS:  // SONGS string must have a comma!
       {
         size_t string_len = strlen(newInfoString[0]);
 
@@ -101,7 +103,7 @@ class mySidTune : public sidTune {
           return false;
       }
 
-      case INITPLAY:  // INITPLAY string must have a comma!
+      case Mode::INITPLAY:  // INITPLAY string must have a comma!
       {
         size_t string_len = strlen(newInfoString[0]);
 
@@ -129,7 +131,7 @@ class mySidTune : public sidTune {
           return false;
       }
 
-      case FREEPAGES:  // FREEPAGES string must have a comma!
+      case Mode::FREEPAGES:  // FREEPAGES string must have a comma!
       {
         size_t string_len = strlen(newInfoString[0]);
 
@@ -154,9 +156,10 @@ class mySidTune : public sidTune {
           return false;
       }
 
-      case FLAGS:  // We'll fall thru the next 4 cases for this one.
-      case MUSPLAYER: {
-        if ((mode == FLAGS) && (newInfoString[infoStringIndex][0] == '*')) {
+      case Mode::FLAGS:  // We'll fall thru the next 4 cases for this one.
+      case Mode::MUSPLAYER: {
+        if ((mode == Mode::FLAGS) &&
+            (newInfoString[infoStringIndex][0] == '*')) {
           ;  // Do nothing - this field is not to be changed.
         } else if (atoi(newInfoString[infoStringIndex]) == 0) {
           info.musPlayer = false;
@@ -166,7 +169,7 @@ class mySidTune : public sidTune {
           return false;
         }
 
-        if (mode != FLAGS) {
+        if (mode != Mode::FLAGS) {
           break;
         } else {
           // Fall through.
@@ -174,8 +177,9 @@ class mySidTune : public sidTune {
         }
       }
 
-      case PLAYSID: {
-        if ((mode == FLAGS) && (newInfoString[infoStringIndex][0] == '*')) {
+      case Mode::PLAYSID: {
+        if ((mode == Mode::FLAGS) &&
+            (newInfoString[infoStringIndex][0] == '*')) {
           ;  // Do nothing - this field is not to be changed.
         } else if (atoi(newInfoString[infoStringIndex]) == 0) {
           if ((info.compatibility != SIDTUNE_COMPATIBILITY_C64) &&
@@ -193,7 +197,7 @@ class mySidTune : public sidTune {
           return false;
         }
 
-        if (mode != FLAGS) {
+        if (mode != Mode::FLAGS) {
           break;
         } else {
           // Fall through.
@@ -201,8 +205,9 @@ class mySidTune : public sidTune {
         }
       }
 
-      case CLOCK: {
-        if ((mode == FLAGS) && (newInfoString[infoStringIndex][0] == '*')) {
+      case Mode::CLOCK: {
+        if ((mode == Mode::FLAGS) &&
+            (newInfoString[infoStringIndex][0] == '*')) {
           ;  // Do nothing - this field is not to be changed.
         } else if (!strcmp(newInfoString[infoStringIndex], "UNKNOWN")) {
           info.clockSpeed = SIDTUNE_CLOCK_UNKNOWN;
@@ -217,7 +222,7 @@ class mySidTune : public sidTune {
           return false;
         }
 
-        if (mode != FLAGS) {
+        if (mode != Mode::FLAGS) {
           break;
         } else {
           // Fall through.
@@ -225,8 +230,9 @@ class mySidTune : public sidTune {
         }
       }
 
-      case SIDMODEL: {
-        if ((mode == FLAGS) && (newInfoString[infoStringIndex][0] == '*')) {
+      case Mode::SIDMODEL: {
+        if ((mode == Mode::FLAGS) &&
+            (newInfoString[infoStringIndex][0] == '*')) {
           ;  // Do nothing - this field is not to be changed.
         } else if (!strcmp(newInfoString[infoStringIndex], "UNKNOWN")) {
           info.sidModel = SIDTUNE_SIDMODEL_UNKNOWN;
@@ -244,7 +250,7 @@ class mySidTune : public sidTune {
         break;  // The FLAGS directive stops here, too.
       }
 
-      case FIXLOAD: {
+      case Mode::FIXLOAD: {
         // Increase load address by 2 without verification.
         fixLoadAddress(true, info.initAddr, info.playAddr);
         break;
@@ -258,6 +264,6 @@ class mySidTune : public sidTune {
     return true;
 
   };  // writeToSidTune
-};    // mySidTune
+};  // mySidTune
 
 #endif  // mysidtune_h

@@ -182,7 +182,7 @@ class sidTune {
   // These functions work for any successfully created object.
   // overWriteFlag: true	= Overwrite existing file.
   //				  false = Default, return error when file
-  //already 						  exists.
+  // already 						  exists.
   // One could imagine an "Are you sure ?"-checkbox before overwriting
   // any file.
   // returns: true = Successful, false = Error condition.

@@ -115,7 +115,7 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
         }
 
       }  // nodir
-    }    // for
+    }  // for
 
   } else  // source is single file
   {       // source has platform-specific path

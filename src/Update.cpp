@@ -76,39 +76,9 @@ static const char* HUBBARD_ROB_DIR = LONG_HUBBARD_ROB_DIR;
 static const int maxUpdateNum = 1000;  // Should be plenty...
 static const int maxSidInfoLen = 32;   // not including terminator
 
-// Denotes version from which copyright was dropped and released
-// was used instead
-static const HVSCVER HVSCVersion_ReleasedKeyword = MAKE_HVSCVER(5, 1);
+#include "Mode.h"
 
-// Leave TITLE, AUTHOR, RELEASED in exact order as enumerated below.
-static const char* keywords[] = {
-    "TITLE",    "AUTHOR",    "RELEASED",  "SPEED",     "SONGS",
-    "CREDITS",  "DELETE",    "MOVE",      "REPLACE",   "MKDIR",
-    "FIXLOAD",  "INITPLAY",  "MUSPLAYER", "PLAYSID",   "CLOCK",
-    "SIDMODEL", "FREEPAGES", "FLAGS",     "COPYRIGHT", NULL};
-enum mode_type {
-  TITLE = 0,
-  AUTHOR = 1,
-  RELEASED = 2,
-  SPEED,
-  SONGS,
-  CREDITS,
-  DELETEMODE,
-  MOVE,
-  REPLACE,
-  MKDIRMODE,
-  FIXLOAD,
-  INITPLAY,
-  MUSPLAYER,
-  PLAYSID,
-  CLOCK,
-  SIDMODEL,
-  FREEPAGES,
-  FLAGS,
-  COPYRIGHT,
-  NO_MODE
-};
-static mode_type mode = NO_MODE;
+static Mode mode = Mode::NO_MODE;
 
 // We include it here because it depends on above mode_type.
 #include "mysidtune.h"
@@ -116,11 +86,10 @@ static mode_type mode = NO_MODE;
 static TextFile updateFile(0);
 
 void logError(ofstream& errorFile, std::string lineContent,
-              std::string errorMessage, int iLineNum, mode_type mode,
+              std::string errorMessage, int iLineNum, Mode mode,
               int& errorCount);
 
-ErrorLogger mkErrorLogger(ofstream& errorFile, mode_type mode,
-                          int& errorCount) {
+ErrorLogger mkErrorLogger(ofstream& errorFile, Mode mode, int& errorCount) {
   return [mode, &errorCount, &errorFile](
              std::string lineContent, std::string errorMessage, int lineNum) {
     logError(errorFile, lineContent, errorMessage, lineNum, mode, errorCount);
@@ -506,55 +475,45 @@ int main(int, char* argv[]) {
     };
     if (updateFile.isBlank()) break;
 
-    int x = -1;
     // Find the Mode.  Compare current line to all of the keywords
     // until found or end of keywords.
-    while (NULL != keywords[++x]) {
-      if (!strcmp(keywords[x], updateFile.getParseBuf())) {
-        mode = (mode_type)x;  // keyword found; set corresponding mode.
-        break;
-      }
-    }
-    // Not equal to NULL if keyword found;
+    const auto tmp = std::string{updateFile.getParseBuf()};
+    const auto maybeMode = string_to_mode(tmp);
+
     // If keyword found, get next line in file.
-    if (NULL != keywords[x]) continue;
+    if (maybeMode.has_value()) {
+      mode = maybeMode.value();
+      continue;
+    }
 
     int line = updateFile.getLineNum();
 
-    // --------------------------------------------------------------------------
-    if (mode == COPYRIGHT) {  // The use of the word copyright was replaced with
-                              // released
-      if (hvscvercmp(HVSCversion_found, HVSCVersion_ReleasedKeyword) >= 0)
-        continue;
-      mode = RELEASED;
-    }
-
     // Based on the mode, take the proper action.
     switch (mode) {
-      case TITLE:
-      case AUTHOR:
-      case RELEASED:
-      case CREDITS:
-      case SPEED:
-      case SONGS:
-      case FIXLOAD:
-      case INITPLAY:
-      case MUSPLAYER:
-      case PLAYSID:
-      case CLOCK:
-      case SIDMODEL:
-      case FREEPAGES:
-      case FLAGS: {
+      case Mode::TITLE:
+      case Mode::AUTHOR:
+      case Mode::RELEASED:
+      case Mode::CREDITS:
+      case Mode::SPEED:
+      case Mode::SONGS:
+      case Mode::FIXLOAD:
+      case Mode::INITPLAY:
+      case Mode::MUSPLAYER:
+      case Mode::PLAYSID:
+      case Mode::CLOCK:
+      case Mode::SIDMODEL:
+      case Mode::FREEPAGES:
+      case Mode::FLAGS: {
         fs::path tmpSource;
         if (!getHVSCpath(tmpSource, updateFile.getLineBuf())) {
           logError(errorFile, updateFile.getLineBuf(),
                    "File not found or permission denied.", line, mode,
                    errorCount);
-          if (mode == CREDITS)
+          if (mode == Mode::CREDITS)
             skipLinesAfterError = 3;
-          else if (mode == FLAGS)
+          else if (mode == Mode::FLAGS)
             skipLinesAfterError = 4;
-          else if (mode == FIXLOAD)
+          else if (mode == Mode::FIXLOAD)
             skipLinesAfterError = 0;
           else
             skipLinesAfterError = 1;
@@ -569,7 +528,7 @@ int main(int, char* argv[]) {
           // strncpy copies terminator if inside size n.
           // strlen does not count terminator.
 
-          if (CREDITS == mode) {
+          if (Mode::CREDITS == mode) {
             for (int n = 0; n < 3; n++) {
               updateFile.readNextLine();
               if (!HVSCversion.isUpdate10) {
@@ -585,7 +544,7 @@ int main(int, char* argv[]) {
               strncpy(sidInfo[n], updateFile.getLineBuf(),
                       maxSidInfoLen); /*+1*/
             }
-          } else if (FLAGS == mode) {
+          } else if (Mode::FLAGS == mode) {
             for (int n = 0; n < 4; n++) {
               updateFile.readNextLine();
               if (!HVSCversion.isUpdate10) {
@@ -597,8 +556,8 @@ int main(int, char* argv[]) {
               strncpy(sidInfo[n], updateFile.getLineBuf(),
                       maxSidInfoLen); /*+1*/
             }
-          } else if ((AUTHOR == mode) || (TITLE == mode) ||
-                     (RELEASED == mode)) {
+          } else if ((Mode::AUTHOR == mode) || (Mode::TITLE == mode) ||
+                     (Mode::RELEASED == mode)) {
             updateFile.readNextLine();
             if (updateFile.isBlank())
               logError(errorFile, tmpSource.string(),
@@ -608,9 +567,9 @@ int main(int, char* argv[]) {
               logError(errorFile, tmpSource.string(),
                        "SID credit string too long.", updateFile.getLineNum(),
                        mode, errorCount);
-            strncpy(sidInfo[mode], updateFile.getLineBuf(),
+            strncpy(sidInfo[mode_to_int(mode)], updateFile.getLineBuf(),
                     maxSidInfoLen); /*+1*/
-          } else if (FIXLOAD == mode) {
+          } else if (Mode::FIXLOAD == mode) {
             ;
           }
 
@@ -651,7 +610,7 @@ int main(int, char* argv[]) {
         // Delete files and directories. Directories being deleted must
         // not have files within it (this might be changed later).
 
-      case DELETEMODE: {
+      case Mode::DELETE: {
         fs::path dest;
         const auto src = updateFile.getLineBuf();
 
@@ -677,10 +636,10 @@ int main(int, char* argv[]) {
         // ---------------------------------------------------------------------
         // MOVE
 
-      case MOVE:
-      case REPLACE: {
+      case Mode::MOVE:
+      case Mode::REPLACE: {
         auto err = mkErrorLogger(errorFile, mode, errorCount);
-        auto result = move_replace(mode == MOVE, updateFile, err);
+        auto result = move_replace(mode == Mode::MOVE, updateFile, err);
         break;
       }
 
@@ -689,7 +648,7 @@ int main(int, char* argv[]) {
 
         // Obsolete, but deprecated.
 
-      case MKDIRMODE: {
+      case Mode::MKDIR: {
         auto err = mkErrorLogger(errorFile, mode, errorCount);
 
         makeHVSCdir(err, line, updateFile.getLineBuf());
@@ -701,7 +660,7 @@ int main(int, char* argv[]) {
 
         // NO_MODE is active when no keywords have been read yet.
 
-      case NO_MODE:
+      case Mode::NO_MODE:
       default: {
         logError(errorFile, updateFile.getLineBuf(),
                  "Keyword/parameter mismatch?", line, mode, errorCount);
@@ -731,7 +690,7 @@ int main(int, char* argv[]) {
     docSrc.lastFile();
     fs::path docDest(documentsPath.c_str());
     docDest.append(docSrc.getFile());
-    auto err = mkErrorLogger(errorFile, NO_MODE, errorCount);
+    auto err = mkErrorLogger(errorFile, Mode::NO_MODE, errorCount);
     fileCopy(err, 0, updateFileName.c_str(), docDest.c_str());
   }
 
@@ -779,66 +738,11 @@ bool isDir(const char* fileName) {
 // --------------------------------------------------------------------------
 
 void logError(ofstream& errorFile, std::string lineContent,
-              std::string errorMessage, int iLineNum, mode_type mode,
+              std::string errorMessage, int iLineNum, Mode mode,
               int& errorCount) {
   errorFile << "Line " << iLineNum << ", ";
 
-  switch (mode) {
-    case DELETEMODE:
-      errorFile << "DELETE: ";
-      break;
-    case MOVE:
-      errorFile << "MOVE: ";
-      break;
-    case REPLACE:
-      errorFile << "REPLACE: ";
-      break;
-    case MKDIRMODE:
-      errorFile << "MKDIR: ";
-      break;
-    case AUTHOR:
-      errorFile << "AUTHOR: ";
-      break;
-    case TITLE:
-      errorFile << "TITLE: ";
-      break;
-    case RELEASED:
-      if (hvscvercmp(HVSCversion_found, HVSCVersion_ReleasedKeyword) < 0)
-        errorFile << "COPYRIGHT: ";
-      else
-        errorFile << "RELEASED: ";
-      break;
-    case CREDITS:
-      errorFile << "CREDITS: ";
-      break;
-    case FIXLOAD:
-      errorFile << "FIXLOAD: ";
-      break;
-    case INITPLAY:
-      errorFile << "INITPLAY: ";
-      break;
-    case MUSPLAYER:
-      errorFile << "MUSPLAYER: ";
-      break;
-    case PLAYSID:
-      errorFile << "PLAYSID: ";
-      break;
-    case CLOCK:
-      errorFile << "CLOCK: ";
-      break;
-    case SIDMODEL:
-      errorFile << "SIDMODEL: ";
-      break;
-    case FREEPAGES:
-      errorFile << "FREEPAGES: ";
-      break;
-    case FLAGS:
-      errorFile << "FLAGS: ";
-      break;
-    default:
-      errorFile << "UNKNOWN: ";
-      break;
-  }
+  errorFile << mode_to_string(mode) << ": ";
 
   errorFile << errorMessage << endl << "    " << lineContent << endl;
 

@@ -686,7 +686,7 @@ int main(int, char* argv[]) {
   // Clean up.
   if (errorCount == 0) {
     // Move HVS file.
-    PathSplitter docSrc(&updateFileNameCat);
+    PathSplitter docSrc(updateFileNameCat);
     docSrc.lastFile();
     fs::path docDest(documentsPath.c_str());
     docDest.append(docSrc.getFile());

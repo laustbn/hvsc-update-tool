@@ -139,7 +139,7 @@ bool makeHVSCdir(ErrorLogger err, int line, fs::path hvscPath) {
   if (!getHVSCpath(tmpDest, hvscPath))  // path not found?
   {
     // We use this to analyze the input path.
-    PathSplitter myPathSplitter(&hvscPath);
+    PathSplitter myPathSplitter(hvscPath);
 
     // TODO: verify input beforehand to fail earlier make this check redundant
     if (!myPathSplitter.isGood()) {

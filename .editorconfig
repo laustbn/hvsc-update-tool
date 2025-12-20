@@ -1,9 +1,8 @@
 root = true
 
-# 4 space indentation
 [{*.cpp,*.h}]
-indent_style = tab
-indent_size = 4
+indent_style = space
+indent_size = 2
 
 
 [{HVSC_Update.txt,HVS_file_format.txt,SID_file_format.txt}]

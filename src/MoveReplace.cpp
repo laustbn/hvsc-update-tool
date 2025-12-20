@@ -15,7 +15,7 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
 
   // The path we fetch the source file name from
   // if it is not a directory.
-  PathSplitter sourceSplitter(&hvscSource);
+  PathSplitter sourceSplitter(hvscSource);
 
   // Check whether source (dir or file) exists.
   fs::path source;

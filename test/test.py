@@ -10,8 +10,8 @@ import os.path
 import shutil
 import re
 import json
-import sys
 import argparse
+import itertools
 
 
 @contextlib.contextmanager
@@ -106,16 +106,33 @@ def unpack_all_in_one(version, where):
 
 def generate_hash(directory):
     # See README
-    ignore = '-not -path "./update/*" -and -not -path "./readme.1st"'
+    src_files = []
     with chdir(f"{directory}/C64Music"):
-        cmd = (
-            f"find . -type f {ignore} -print0 | xargs -0 shasum -b "
-            "| sort | shasum -b"
-        )
-        stdout = subprocess.check_output(cmd, shell=True).decode("utf-8")
+        for root, dirs, files in os.walk("."):
+            if os.path.relpath(root, ".") == "update":
+                dirs.clear()
+                continue
+            for file in files:
+                path = os.path.join(root, file)
+                rel_path = os.path.relpath(path, ".")
+                if rel_path == "readme.1st":
+                    continue
+                src_files.append(path)
 
-        # SHA-1 40 characters
-        sha = stdout[0:40]
+        stdout = ""
+        for b in itertools.batched(src_files, 100):
+            stdout += subprocess.check_output(
+                ["shasum", "-b"] + list(b), shell=False
+            ).decode("utf-8")
+
+        all_sums = sorted(stdout.splitlines())
+        combined = "\n".join(all_sums) + "\n"
+
+        final_sum = subprocess.check_output(
+            ["shasum", "-b"], input=combined.encode("utf-8")
+        ).decode("utf-8")
+
+        sha = final_sum[0:40]
         if not re.match(r"[0-9a-f]{40}", sha):
             raise Exception(f"{sha} is not a SHA-1 hash?")
         print(sha)

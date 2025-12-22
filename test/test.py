@@ -12,6 +12,8 @@ import re
 import json
 import argparse
 import itertools
+import hashlib
+from concurrent.futures import ThreadPoolExecutor
 
 
 @contextlib.contextmanager
@@ -104,6 +106,24 @@ def unpack_all_in_one(version, where):
         unrar(f"../{filename}")
 
 
+def shasum_file(filename):
+    """Python implementation of shasum -b"""
+    h = hashlib.sha1()
+    with open(filename, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+
+    return f"{h.hexdigest()} *{filename}"
+
+
+def shasum_buffer(buf):
+    """Python implementation of shasum -b of stdin"""
+    h = hashlib.sha1()
+    h.update(buf)
+
+    return f"{h.hexdigest()} *-"
+
+
 def generate_hash(directory):
     # See README
     src_files = []
@@ -119,18 +139,13 @@ def generate_hash(directory):
                     continue
                 src_files.append(path)
 
-        stdout = ""
-        for b in itertools.batched(src_files, 100):
-            stdout += subprocess.check_output(
-                ["shasum", "-b"] + list(b), shell=False
-            ).decode("utf-8")
+        with ThreadPoolExecutor() as executor:
+            all_sums = sorted(executor.map(shasum_file, src_files))
 
-        all_sums = sorted(stdout.splitlines())
+        # Identical to output from shasum
         combined = "\n".join(all_sums) + "\n"
 
-        final_sum = subprocess.check_output(
-            ["shasum", "-b"], input=combined.encode("utf-8")
-        ).decode("utf-8")
+        final_sum = shasum_buffer(combined.encode("utf-8"))
 
         sha = final_sum[0:40]
         if not re.match(r"[0-9a-f]{40}", sha):

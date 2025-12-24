@@ -96,10 +96,6 @@ ErrorLogger mkErrorLogger(ofstream& errorFile, Mode mode, int& errorCount) {
   };
 }
 
-bool myMkDir(const char* dirName);
-
-bool isDir(const char* fileName);
-
 // Returns false if user prompting is disabled by setting the HVSC_NO_PROMPT
 // environment variable. This is to facilitate automated testing.
 bool prompt_user() {
@@ -610,7 +606,7 @@ int main(int, char* argv[]) {
         // Delete files and directories. Directories being deleted must
         // not have files within it (this might be changed later).
 
-      case Mode::DELETE: {
+      case must_string_to_mode("DELETE"): {
         fs::path dest;
         const auto src = updateFile.getLineBuf();
 
@@ -717,22 +713,6 @@ int main(int, char* argv[]) {
          << " if you encounter any unsolvable problems." << endl;
     appExit(-1);
   }
-}
-
-// --------------------------------------------------------------------------
-
-// --------------------------------------------------------------------------
-
-// --------------------------------------------------------------------------
-
-bool myMkDir(const char* dirName) {
-  return filesystem_create_directory(dirName);
-}
-
-// Try to open a file using opendir(). If successful, it is a directory.
-// TODO: can be deleted?
-bool isDir(const char* fileName) {
-  return std::filesystem::is_directory(fileName);
 }
 
 // --------------------------------------------------------------------------

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(hvsc_update_tool)
 
 # Defines the version reported by the update tool
-SET(BUILD_VERSION "2.8.8")
+SET(BUILD_VERSION "2.8.9")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS On)
 # set(CMAKE_CXX_CLANG_TIDY clang-tidy-mp-16 -checks=-*,clang-analyzer-*)
@@ -18,13 +18,4 @@ add_executable(hvsc_update_tool src/Update.cpp)
 configure_file(src/update_tool_version.h.in update_tool_version.h)
 target_link_libraries(hvsc_update_tool PRIVATE libupdate)
 target_include_directories(hvsc_update_tool PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-
-# Windows specific configuration
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  configure_file(src/update_tool.manifest.in update_tool.manifest)
-  target_link_libraries(hvsc_update_tool PRIVATE -manifest:embed -manifestinput:"${CMAKE_CURRENT_BINARY_DIR}/update_tool.manifest")
-else()
-  # Strip the binary
-  # add_custom_command(TARGET hvsc_update_tool POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:hvsc_update_tool>)
-endif()
 

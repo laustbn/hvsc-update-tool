@@ -11,9 +11,8 @@ import shutil
 import re
 import json
 import argparse
-import itertools
 import hashlib
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 
 @contextlib.contextmanager
@@ -113,7 +112,8 @@ def shasum_file(filename):
         for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
 
-    return f"{h.hexdigest()} *{filename}"
+    unix_filename = filename.replace("\\", "/")
+    return f"{h.hexdigest()} *{unix_filename}"
 
 
 def shasum_buffer(buf):
@@ -139,7 +139,7 @@ def generate_hash(directory):
                     continue
                 src_files.append(path)
 
-        with ThreadPoolExecutor() as executor:
+        with ProcessPoolExecutor() as executor:
             all_sums = sorted(executor.map(shasum_file, src_files))
 
         # Identical to output from shasum
@@ -301,8 +301,9 @@ def main():
             subprocess.run(["wineboot"])
         run_test(versions, abs_exe, args.wine, args.debug)
     else:
-        print(f"Must specify action")
+        print("Must specify action")
         exit(1)
 
 
-main()
+if __name__ == "__main__":
+    main()

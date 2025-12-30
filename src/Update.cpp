@@ -3,14 +3,12 @@
 //
 // Copyright (C) 1998,1999 HVSC administrators.
 
-#include <ctype.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include <cstdlib>
 #include <fstream>
 
-#include "config.h"
 using std::ifstream;
 
 #include <iomanip>
@@ -23,9 +21,6 @@ using std::cout;
 using std::endl;
 
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -55,8 +50,6 @@ static const char HVSCcontactEmail[] = "HVSC Admin <hvsc@c64.org>";
 
 HVSCVER HVSCversion_found;
 
-static const bool ALLOW_PRE_UPDATE7 = false;
-
 // HVSC top-level directories. Case does not matter because it
 // will be determined by the update tool.
 static const char UPDATE_DIR[] = "update";
@@ -78,12 +71,8 @@ static const int maxSidInfoLen = 32;   // not including terminator
 
 #include "Mode.h"
 
-static Mode mode = Mode::NO_MODE;
-
 // We include it here because it depends on above mode_type.
 #include "mysidtune.h"
-
-static TextFile updateFile(0);
 
 void logError(ofstream& errorFile, std::string lineContent,
               std::string errorMessage, int iLineNum, Mode mode,
@@ -151,16 +140,12 @@ int main(int, char* argv[]) {
     HVSCVER resulting;
     HVSCVER found;
     bool havePrevScript;
-    bool isHVSC1X;
-    bool isUpdate10;
     bool printWarning;
   } HVSCversion;
 
   HVSCversion.required = MAKE_HVSCVER(0, 0);
   HVSCversion.resulting = MAKE_HVSCVER(0, 0);
   HVSCversion.found = MAKE_HVSCVER(0, 0);
-  HVSCversion.isHVSC1X = false;
-  HVSCversion.isUpdate10 = false;
   HVSCversion.printWarning = false;
 
   HVSCversion_found = MAKE_HVSCVER(0, 0);
@@ -351,6 +336,8 @@ int main(int, char* argv[]) {
     cout << endl;
   }
 
+  TextFile updateFile(0);
+
   // Count number of lines in file.
   updateFile.open(updateFileName.string().c_str());
   int lines = 0;
@@ -435,13 +422,6 @@ int main(int, char* argv[]) {
     cout << endl;
   }
 
-  // If Update #10 is used, enable special compatibility mode.
-  // Allow missing parameter lines in CREDITS command.
-  if (hvscvercmp(HVSCversion.required, MAKE_HVSCVER(2, 3)) == 0 &&
-      hvscvercmp(HVSCversion.resulting, MAKE_HVSCVER(2, 4)) == 0) {
-    HVSCversion.isUpdate10 = true;
-  }
-
   // This time we take care of file access errors.
   if (!updateFile.open(updateFileName.string().c_str())) {
     cerr << endl
@@ -459,6 +439,7 @@ int main(int, char* argv[]) {
 
   int skipLinesAfterError = 0;
   int errorCount = 0;
+  Mode mode = Mode::NO_MODE;
   while (!updateFile.endOfFile())  // line-by-line loop
   {
     updateFile.readNextLine();
@@ -527,12 +508,10 @@ int main(int, char* argv[]) {
           if (Mode::CREDITS == mode) {
             for (int n = 0; n < 3; n++) {
               updateFile.readNextLine();
-              if (!HVSCversion.isUpdate10) {
-                if (updateFile.isBlank())
-                  logError(errorFile, tmpSource.string(),
-                           "Premature end of update script?",
-                           updateFile.getLineNum(), mode, errorCount);
-              }
+              if (updateFile.isBlank())
+                logError(errorFile, tmpSource.string(),
+                         "Premature end of update script?",
+                         updateFile.getLineNum(), mode, errorCount);
               if (updateFile.getLineLen() > maxSidInfoLen)
                 logError(errorFile, tmpSource.string(),
                          "SID credit string too long.", updateFile.getLineNum(),
@@ -543,12 +522,10 @@ int main(int, char* argv[]) {
           } else if (Mode::FLAGS == mode) {
             for (int n = 0; n < 4; n++) {
               updateFile.readNextLine();
-              if (!HVSCversion.isUpdate10) {
-                if (updateFile.isBlank())
-                  logError(errorFile, tmpSource.string(),
-                           "Premature end of update script?",
-                           updateFile.getLineNum(), mode, errorCount);
-              }
+              if (updateFile.isBlank())
+                logError(errorFile, tmpSource.string(),
+                         "Premature end of update script?",
+                         updateFile.getLineNum(), mode, errorCount);
               strncpy(sidInfo[n], updateFile.getLineBuf(),
                       maxSidInfoLen); /*+1*/
             }

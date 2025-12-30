@@ -3,7 +3,6 @@
 #include "helpers.h"
 
 // for old implementation
-#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -14,12 +13,6 @@ namespace fs = std::filesystem;
 using namespace std;
 
 static const char PARENT_DIR[] = "..";
-
-std::string to_lower(std::string s) {
-  std::transform(s.begin(), s.end(), s.begin(),
-                 [](unsigned char c) { return std::tolower(c); });
-  return std::move(s);
-}
 
 bool fileCopy(ErrorLogger err, int line, fs::path inFileName,
               fs::path outFileName) {

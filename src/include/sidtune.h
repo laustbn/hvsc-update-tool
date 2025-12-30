@@ -11,8 +11,9 @@
 
 #include <fstream>
 
-#include "config.h"
 using std::ofstream;
+
+#include <filesystem>
 
 #include "mytypes.h"
 

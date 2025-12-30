@@ -259,19 +259,23 @@ int main(int, char* argv[]) {
     fs::path hvsidsFileName, hvsidsFileNameTmp;
     hvsidsFileNameTmp.append(DOCUMENTS_DIR).append(f);
     if (getHVSCpath(hvsidsFileName, hvsidsFileNameTmp)) {
-      TextFile hvsidsFile(hvsidsFileName.string().c_str());
-      int line = 0;
-      while (!hvsidsFile.endOfFile() && line <= 10) {
-        hvsidsFile.readNextLine();
-        line++;
-        if (hvsidsFile.isKey("release")) {
-          HVSCversion.found = atohvscver(hvsidsFile.getCurParseBuf());
+      std::optional<HeaderReader> open_hvsids;
+      try {
+        open_hvsids = HeaderReader(hvsidsFileName.string());
+      } catch (const std::exception& e) {
+        continue;
+      }
+      HeaderReader hvsidsFile = std::move(open_hvsids.value());
+
+      while (hvsidsFile.NextLine() && hvsidsFile.GetLineNum() <= 10) {
+        const auto rel = hvsidsFile.FindKey("release");
+        if (rel) {
+          HVSCversion.found = atohvscver(rel.value().c_str());
           HVSCversion_found = HVSCversion.found;
+          found = true;
+          break;
         }
       }
-      hvsidsFile.close();
-      found = true;
-      break;
     }
   }
   if (!found) {
@@ -336,29 +340,52 @@ int main(int, char* argv[]) {
     cout << endl;
   }
 
-  TextFile updateFile(0);
-
-  // Count number of lines in file.
-  updateFile.open(updateFileName.string().c_str());
-  int lines = 0;
-  while (!updateFile.endOfFile())  // line-by-line loop
+  // Open update script in header mode temporarily to extract versions
   {
-    updateFile.readNextLine();
-    lines++;
-    if (lines <= 10) {
-      if (updateFile.isKey("#PreviousVersion:"))
-        HVSCversion.required = atohvscver(updateFile.getCurParseBuf());
-      else if (updateFile.isKey("#ResultingVersion:"))
-        HVSCversion.resulting = atohvscver(updateFile.getCurParseBuf());
+    // Handle open file I/O errors
+    std::optional<HeaderReader> open_tf;
+    try {
+      open_tf = HeaderReader(updateFileName.string());
+    } catch (const std::exception& e) {
+      // This time we take care of file access errors.
+      cerr << endl
+           << "Error: Could not open ``" << updateFileName << "''." << endl;
+      cerr << "Exception " << e.what() << endl;
+      appExit(-1);
+    }
+
+    HeaderReader updateFile = std::move(open_tf.value());
+
+    // Detect versions
+    bool found_prev = false;
+    bool found_resulting = false;
+    while (updateFile.NextLine() &&
+           updateFile.GetLineNum() <= 10)  // line-by-line loop
+    {
+      if (found_prev && found_resulting) {
+        break;
+      }
+
+      if (auto k = updateFile.FindKey("#PreviousVersion:")) {
+        HVSCversion.required = atohvscver(k.value().c_str());
+        found_prev = true;
+      } else if (auto k = updateFile.FindKey("#ResultingVersion:")) {
+        HVSCversion.resulting = atohvscver(k.value().c_str());
+        found_resulting = true;
+      }
+    }
+
+    if (!found_prev || !found_resulting) {
+      cerr << "Failed to find previous version or resulting version in HVSC "
+              "update script file ``"
+           << updateFileName << "''." << endl;
+      appExit(-1);
     }
   }
-  updateFile.close();
 
-  if (lines == 0) {
-    cerr << "HVSC update script file ``" << updateFileName << "'' is empty."
-         << endl;
-    appExit(-1);
-  }
+  // Now open for parsing update commands. Just throw if the open failed - we
+  // just read from the file after all.
+  UpdateReader updateFile{updateFileName.string()};
 
   if (updateNum > 1) {
     // Create the file name of the previous update script,
@@ -422,16 +449,9 @@ int main(int, char* argv[]) {
     cout << endl;
   }
 
-  // This time we take care of file access errors.
-  if (!updateFile.open(updateFileName.string().c_str())) {
-    cerr << endl
-         << "Error: Could not open ``" << updateFileName << "''." << endl;
-    appExit(-1);
-  }
-
   ofstream errorFile(errorsFileName.c_str());
 
-  fastPercent updateProgress(lines + 1);
+  fastPercent updateProgress(updateFile.Size() + 1);
   cout << "Working : ";
   updateProgress.cout();
 
@@ -440,21 +460,14 @@ int main(int, char* argv[]) {
   int skipLinesAfterError = 0;
   int errorCount = 0;
   Mode mode = Mode::NO_MODE;
-  while (!updateFile.endOfFile())  // line-by-line loop
+  while (updateFile.NextLine())  // line-by-line loop
   {
-    updateFile.readNextLine();
-    updateProgress.update(updateFile.getLineNum());
+    updateProgress.update(updateFile.Pos());
     if (updateProgress.changed()) updateProgress.coutUpdate();
-    // Skip blank and comment lines.
-    while (!updateFile.endOfFile() &&
-           (updateFile.isBlank() || updateFile.isComment())) {
-      updateFile.readNextLine();
-    };
-    if (updateFile.isBlank()) break;
 
     // Find the Mode.  Compare current line to all of the keywords
     // until found or end of keywords.
-    const auto tmp = std::string{updateFile.getParseBuf()};
+    const auto tmp = std::string{updateFile.GetLine()};
     const auto maybeMode = string_to_mode(tmp);
 
     // If keyword found, get next line in file.
@@ -463,7 +476,7 @@ int main(int, char* argv[]) {
       continue;
     }
 
-    int line = updateFile.getLineNum();
+    int line = updateFile.GetLineNum();
 
     // Based on the mode, take the proper action.
     switch (mode) {
@@ -482,8 +495,8 @@ int main(int, char* argv[]) {
       case Mode::FREEPAGES:
       case Mode::FLAGS: {
         fs::path tmpSource;
-        if (!getHVSCpath(tmpSource, updateFile.getLineBuf())) {
-          logError(errorFile, updateFile.getLineBuf(),
+        if (!getHVSCpath(tmpSource, updateFile.GetLine())) {
+          logError(errorFile, updateFile.GetLine(),
                    "File not found or permission denied.", line, mode,
                    errorCount);
           if (mode == Mode::CREDITS)
@@ -507,40 +520,38 @@ int main(int, char* argv[]) {
 
           if (Mode::CREDITS == mode) {
             for (int n = 0; n < 3; n++) {
-              updateFile.readNextLine();
-              if (updateFile.isBlank())
+              if (!updateFile.NextLine())
                 logError(errorFile, tmpSource.string(),
                          "Premature end of update script?",
-                         updateFile.getLineNum(), mode, errorCount);
-              if (updateFile.getLineLen() > maxSidInfoLen)
+                         updateFile.GetLineNum(), mode, errorCount);
+              if (updateFile.GetLine().length() > maxSidInfoLen)
                 logError(errorFile, tmpSource.string(),
-                         "SID credit string too long.", updateFile.getLineNum(),
+                         "SID credit string too long.", updateFile.GetLineNum(),
                          mode, errorCount);
-              strncpy(sidInfo[n], updateFile.getLineBuf(),
+              strncpy(sidInfo[n], updateFile.GetLine().c_str(),
                       maxSidInfoLen); /*+1*/
             }
           } else if (Mode::FLAGS == mode) {
             for (int n = 0; n < 4; n++) {
-              updateFile.readNextLine();
-              if (updateFile.isBlank())
+              if (!updateFile.NextLine())
                 logError(errorFile, tmpSource.string(),
                          "Premature end of update script?",
-                         updateFile.getLineNum(), mode, errorCount);
-              strncpy(sidInfo[n], updateFile.getLineBuf(),
+                         updateFile.GetLineNum(), mode, errorCount);
+              strncpy(sidInfo[n], updateFile.GetLine().c_str(),
                       maxSidInfoLen); /*+1*/
             }
           } else if ((Mode::AUTHOR == mode) || (Mode::TITLE == mode) ||
                      (Mode::RELEASED == mode)) {
-            updateFile.readNextLine();
-            if (updateFile.isBlank())
+            if (!updateFile.NextLine())
               logError(errorFile, tmpSource.string(),
                        "Premature end of update script?",
-                       updateFile.getLineNum(), mode, errorCount);
-            if (updateFile.getLineLen() > maxSidInfoLen)
+                       updateFile.GetLineNum(), mode, errorCount);
+            if (updateFile.GetLine().length() > maxSidInfoLen) {
               logError(errorFile, tmpSource.string(),
-                       "SID credit string too long.", updateFile.getLineNum(),
+                       "SID credit string too long.", updateFile.GetLineNum(),
                        mode, errorCount);
-            strncpy(sidInfo[mode_to_int(mode)], updateFile.getLineBuf(),
+            }
+            strncpy(sidInfo[mode_to_int(mode)], updateFile.GetLine().c_str(),
                     maxSidInfoLen); /*+1*/
           } else if (Mode::FIXLOAD == mode) {
             ;
@@ -549,12 +560,12 @@ int main(int, char* argv[]) {
           // SPEED, SONGS, INITPLAY, MUSPLAYER, PLAYSID, CLOCK,
           // SIDMODEL, FREEPAGES
           else {
-            updateFile.readNextLine();
-            if (updateFile.isBlank())
+            if (!updateFile.NextLine())
               logError(errorFile, tmpSource.string(),
                        "Premature end of update script?",
-                       updateFile.getLineNum(), mode, errorCount);
-            strncpy(sidInfo[0], updateFile.getLineBuf(), maxSidInfoLen + 1);
+                       updateFile.GetLineNum(), mode, errorCount);
+            strncpy(sidInfo[0], updateFile.GetLine().c_str(),
+                    maxSidInfoLen + 1);
           }
 
           mySidTune sidFile(tmpSource.string().c_str());
@@ -585,10 +596,10 @@ int main(int, char* argv[]) {
 
       case must_string_to_mode("DELETE"): {
         fs::path dest;
-        const auto src = updateFile.getLineBuf();
+        const auto src = updateFile.GetLine();
 
         if (!getHVSCpath(dest, src)) {
-          logError(errorFile, updateFile.getLineBuf(),
+          logError(errorFile, updateFile.GetLine(),
                    "File or directory not found.", line, mode, errorCount);
         } else {
           if (fs::is_directory(dest)) {
@@ -624,7 +635,7 @@ int main(int, char* argv[]) {
       case Mode::MKDIR: {
         auto err = mkErrorLogger(errorFile, mode, errorCount);
 
-        makeHVSCdir(err, line, updateFile.getLineBuf());
+        makeHVSCdir(err, line, updateFile.GetLine());
         break;
       }
 
@@ -635,15 +646,15 @@ int main(int, char* argv[]) {
 
       case Mode::NO_MODE:
       default: {
-        logError(errorFile, updateFile.getLineBuf(),
-                 "Keyword/parameter mismatch?", line, mode, errorCount);
+        logError(errorFile, updateFile.GetLine(), "Keyword/parameter mismatch?",
+                 line, mode, errorCount);
         break;
       }
 
     }  // switch
 
     while (skipLinesAfterError-- > 0) {
-      updateFile.readNextLine();
+      updateFile.NextLine();
     };
     skipLinesAfterError = 0;
 
@@ -653,8 +664,6 @@ int main(int, char* argv[]) {
 
   updateProgress.end();  // 100%
   cout << endl << endl;
-
-  updateFile.close();
 
   // Clean up.
   if (errorCount == 0) {

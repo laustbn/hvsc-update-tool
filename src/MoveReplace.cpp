@@ -10,8 +10,8 @@ namespace fs = std::filesystem;
 #include "TextFile.h"
 #include "helpers.h"
 
-bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
-  const fs::path hvscSource{updateFile.getLineBuf()};
+bool move_replace(bool is_move, UpdateReader& updateFile, ErrorLogger err) {
+  const fs::path hvscSource{updateFile.GetLine()};
 
   // The path we fetch the source file name from
   // if it is not a directory.
@@ -22,27 +22,26 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
   if (!getHVSCpath(source, fs::path{hvscSource})) {
     err(hvscSource.string(),
         "(source error) No such path or permission denied.",
-        updateFile.getLineNum());
+        updateFile.GetLineNum());
     // Escape from error further below, ``source'' is empty.
     // First read next line of Update script to not get
     // out of sync.
   }
 
   // Read destination directory/file from next line.
-  updateFile.readNextLine();
-  int destLine = updateFile.getLineNum();
-  if (updateFile.isBlank()) {
-    err(updateFile.getLineBuf(), "Premature end of update Script?",
-        updateFile.getLineNum());
+  if (!updateFile.NextLine()) {
+    err(updateFile.GetLine(), "Premature end of update Script?",
+        updateFile.GetLineNum());
     return false;
   }
+  int destLine = updateFile.GetLineNum();
 
   // Here escape from source error.
   if (source.empty()) return false;
 
   // Check whether destination (dir or file) exists.
   fs::path dest;
-  auto hvscDest = fs::path{updateFile.getLineBuf()};
+  auto hvscDest = fs::path{updateFile.GetLine()};
   if (!getHVSCpath(dest, hvscDest)) {
     // Destination path does not exist.
     //
@@ -52,7 +51,7 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
       makeHVSCdir(err, destLine, hvscDest.c_str());
       // Now this should not return an error.
       if (!getHVSCpath(dest, hvscDest)) {
-        err(updateFile.getLineBuf(), "Creation of directory failed.", destLine);
+        err(updateFile.GetLine(), "Creation of directory failed.", destLine);
         return false;
       }
     } else {
@@ -76,7 +75,7 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
     auto it = fs::directory_iterator{source, ec};
     if (ec) {
       err(source.string(), "(source error) No such path or permission denied.",
-          updateFile.getLineNum());
+          updateFile.GetLineNum());
       return false;
     }
 
@@ -93,7 +92,7 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
           // REPLACE is case-insensitive as well.
           // Hence we seek the source file in dest dir.
           // Create HVSC-style path.
-          auto tmp = fs::path(updateFile.getLineBuf());
+          auto tmp = fs::path(updateFile.GetLine());
           // Replace filename from update script with actual filename from
           // iterator. And add destination file name.
           tmp.replace_filename(entry.path().filename());
@@ -108,10 +107,10 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
         fs::path destFile(dest);
         destFile /= (entry.path().filename());
 
-        if (fileCopy(err, updateFile.getLineNum(), sourceFile, destFile)) {
+        if (fileCopy(err, updateFile.GetLineNum(), sourceFile, destFile)) {
           if (!fs::remove(sourceFile))
             err(sourceFile.string(), "Could not remove source file.",
-                updateFile.getLineNum());
+                updateFile.GetLineNum());
         }
 
       }  // nodir
@@ -141,7 +140,7 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
     // Create HVSC-style destination path.
     if (!dest.empty() && fs::is_directory(dest)) {
       // Create name of possibly existing dest.file.
-      fs::path tmp(updateFile.getLineBuf());
+      fs::path tmp(updateFile.GetLine());
       // Assumes slash is last char in line.
       tmp.replace_filename(sourceSplitter.getFile());
       // Determine platform-specific path.
@@ -159,7 +158,7 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
       // destination file of different case.
 
       // Create HVSC-style path without the file name.
-      auto tmp = fs::path(updateFile.getLineBuf());
+      auto tmp = fs::path(updateFile.GetLine());
       assert(!tmp.empty());
 
       // fs::path destCheck(tmp.getFile());
@@ -189,10 +188,10 @@ bool move_replace(bool is_move, TextFile& updateFile, ErrorLogger err) {
       fs::remove(oldDestFile);
     }
 
-    if (fileCopy(err, updateFile.getLineNum(), source, newDestFile)) {
+    if (fileCopy(err, updateFile.GetLineNum(), source, newDestFile)) {
       if (!fs::remove(source))
         err(source.string(), "Could not remove source file.",
-            updateFile.getLineNum());
+            updateFile.GetLineNum());
     }
   }  // single file
 

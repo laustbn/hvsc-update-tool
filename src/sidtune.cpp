@@ -4,10 +4,8 @@
 // Information on usage of this class in "include/sidtune.h".
 //
 
-#include <iomanip>
+#include "sidtune.h"
 
-#include "config.h"
-using std::ios;
 #include <limits.h>
 #include <string.h>
 
@@ -16,7 +14,8 @@ using std::ios;
 #include "fformat.h"
 #include "myendian.h"
 #include "pp.h"
-#include "sidtune.h"
+
+using std::ios;
 
 const char text_songNumberExceed[] =
     "WARNING: Selected song number was too high";

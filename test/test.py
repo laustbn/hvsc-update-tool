@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# Code for test harness. Download/prep/test. This was written using Python
-# 3.12, but probably runs with earlier versions.
+# Code for test harness. Download/prep/test. Diagnosis feature requires
+# 3.14. The rest should work with (somewhat) older versions.
 
 import os
 import contextlib
@@ -12,6 +12,7 @@ import re
 import json
 import argparse
 import hashlib
+import textwrap
 from urllib.request import Request, urlopen
 from urllib.parse import urlparse
 from concurrent.futures import ProcessPoolExecutor
@@ -31,10 +32,45 @@ HVSC_LOC = "hvsc-archives"
 MIRROR = "https://hvsc.brona.dk/HVSC"
 REF = "all-hashes.json"
 
+DEFAULT_COVER_EXE = "../build/native-cover/hvsc_update_tool"
+DEFAULT_EXE = "../build/native/hvsc_update_tool"
+
+
+class UpdateError(Exception):
+    """Thrown if there's a hash mismatch when verifying an update."""
+
+    def __init__(self, message, version, all_sums):
+        super().__init__(message)
+        self.version = version
+        self.all_sums = all_sums
+
 
 def which(exe):
     p = subprocess.run(["which", exe])
     return p.returncode == 0
+
+
+def llvm_profdata(*args):
+    if not hasattr(llvm_profdata, "exe"):
+        if which("xcrun"):
+            # macOS via Xcode, just assume it exists
+            llvm_profdata.exe = ["xcrun", "llvm-profdata"]
+        elif which("llvm-profdata"):
+            llvm_profdata.exe = ["llvm-profdata"]
+        else:
+            raise Exception("llvm-profdata not found")
+    return subprocess.run(llvm_profdata.exe + list(args)).returncode
+
+
+def llvm_cov(*args):
+    if not hasattr(llvm_cov, "exe"):
+        if which("xcrun"):
+            llvm_cov.exe = ["xcrun", "llvm-cov"]
+        elif which("llvm-cov"):
+            llvm_cov.exe = ["llvm-cov"]
+        else:
+            raise Exception("llvm-cov not found")
+    return subprocess.run(llvm_cov.exe + list(args)).returncode
 
 
 def unrar(*args):
@@ -164,13 +200,14 @@ def generate_hash(directory):
         if not re.match(r"[0-9a-f]{40}", sha):
             raise Exception(f"{sha} is not a SHA-1 hash?")
         print(sha)
-        return sha
+        return (sha, all_sums)
 
 
 def generate_hashes(versions):
     hashes = dict()
     for v in versions:
-        hashes[v] = generate_hash(f"{v}")
+        (h, all_sums) = generate_hash(f"{v}")
+        hashes[v] = h
     return hashes
 
 
@@ -182,7 +219,48 @@ def prepare_for_updates(versions):
 
     download_all_in_one(MIRROR, base)
     unpack_all_in_one(base, test_dir)
-    return generate_hash(test_dir)
+    return generate_hash(test_dir)[0]
+
+
+def load_zstd_sums(fn):
+    # Needs Python 3.14
+    from compression import zstd
+    with zstd.open(fn) as f:
+        sums = json.load(f)
+    return sums
+
+
+def diagnose_mismatch(e):
+    """Attempt to diagnose a mismatch between expected sum and actual"""
+    # Download all sums for update
+    version = e.version
+    sum_fn = f"sums_version_{version}.json.zst"
+    download_file(f"{MIRROR}/debug/", sum_fn)
+
+    # Read sums. Convert to set since we want to have efficient look ups.
+    expected_sums = set(load_zstd_sums(sum_fn))
+    actual_sums = set(e.all_sums)
+
+    identical = []
+    # remove any files that are correct
+    for s in actual_sums:
+        if s in expected_sums:
+            identical.append(s)
+
+    for s in identical:
+        actual_sums.remove(s)
+        expected_sums.remove(s)
+
+    # print (some of) what remains
+    print(f"{len(actual_sums)} sums found but not expected")
+    print(f"{len(expected_sums)} sums expected but not found")
+
+    # We still don't have anything to go on except the hashes, so just print
+    # some of the sums and affected files. Actually showing diffs would be nice
+    # but also require access to all unpacked HVSC releases.
+    print("Ten files with incorrect hashes:")
+    for i in range(10):
+        print(actual_sums.pop())
 
 
 # Download all-in-ones, unpack, and generate checksums. Slow so it doesn't run
@@ -214,12 +292,16 @@ def perform_update(version, exe, use_wine, use_debugger):
         return generate_hash(".")
 
 
-def run_test(versions, exe, use_wine=False, use_debugger=False):
+def cover_fn(v):
+    return f"hvsc-update-tool-update-{v}.profraw"
+
+
+def run_test(versions, exe, use_wine=False, use_debugger=False, cover=False):
     with open(REF, "r") as file:
         hashes = json.load(file)
 
     for v in versions:
-        if not f"{v}" in hashes:
+        if f"{v}" not in hashes:
             print(f"Missing sum for version {v}")
             exit(1)
 
@@ -227,24 +309,56 @@ def run_test(versions, exe, use_wine=False, use_debugger=False):
         base_hash = prepare_for_updates(versions)
         if base_hash != hashes[f"{versions[0]}"]:
             raise Exception(
-                f"Base hash mismatch. Got {base_hash}, expected {hashes[f"{versions[0]}"]}"
+                f"Base hash mismatch. Got {base_hash}, expected {hashes[f'{versions[0]}']}"
             )
         else:
             print("Base hash OK")
 
         os.environ["HVSC_NO_PROMPT"] = "1"
+
         try:
             for v in versions[1:]:
-                h = perform_update(v, exe, use_wine, use_debugger)
+                if cover:
+                    os.environ["LLVM_PROFILE_FILE"] = os.path.abspath(cover_fn(v))
+                (h, all_sums) = perform_update(v, exe, use_wine, use_debugger)
                 if h != hashes[f"{v}"]:
-                    raise Exception(
-                        f"Hash mismatch. Got {h}, expected {hashes[f"{v}"]}"
+                    raise UpdateError(
+                        f"Hash mismatch. Got {h}, expected {hashes[f'{v}']}",
+                        v,
+                        all_sums,
                     )
         except Exception as e:
             print(f"Caught while running update {v}")
             raise e
 
     print("All updates verified")
+
+
+def generate_coverage_report(versions, exe):
+    """Generate a code coverage HTML report"""
+    with chdir(HVSC_LOC):
+        # merge all .profraw into .profdata
+        cover_files = []
+        for v in versions[1:]:
+            cover_files.append(cover_fn(v))
+
+        ret = llvm_profdata("merge", "-sparse", "-o", "hvsc.profdata", *cover_files)
+
+        if ret != 0:
+            raise Exception("Failed to run llvm-profdata")
+
+        # Generate HTML report
+        shutil.rmtree("coverage-html", ignore_errors=True)
+        ret = llvm_cov(
+            "show",
+            exe,
+            "-instr-profile=hvsc.profdata",
+            "-format=html",
+            "-output-dir=coverage-html",
+        )
+
+        if ret != 0:
+            raise Exception("Failed to run llvm-cov")
 
 
 # Ensure exe exists and convert path into absolute
@@ -270,11 +384,17 @@ def main():
     os.environ["no_proxy"] = "*"
 
     parser = argparse.ArgumentParser(
-        prog="test.py", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        prog="test.py",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        epilog=textwrap.dedent(
+            f"""\
+        When --cover is specified, the default exe is {DEFAULT_COVER_EXE}\
+        """
+        ),
     )
     parser.add_argument(
         "--exe",
-        default="../build/native/hvsc_update_tool",
+        default=DEFAULT_EXE,
         help="Update executable to test",
     )
     parser.add_argument(
@@ -297,6 +417,20 @@ def main():
         help="Wrap update tool in debugger (with autostart)",
     )
 
+    parser.add_argument(
+        "--diagnose",
+        action="store_true",
+        default=False,
+        help="If checksum verification fails, attempt to find files with differences",
+    )
+
+    parser.add_argument(
+        "--cover",
+        action="store_true",
+        default=False,
+        help="Setup environment to capture code coverage data",
+    )
+
     parser.add_argument("action", help="test|prepare")
 
     args = parser.parse_args()
@@ -307,7 +441,12 @@ def main():
     if args.action == "prepare":
         prepare(range(44, 84))
     elif args.action == "test":
-        abs_exe = prepare_exe(args.exe)
+        if args.cover and args.exe == parser.get_default("exe"):
+            # Change the default exe
+            abs_exe = prepare_exe(DEFAULT_COVER_EXE)
+        else:
+            abs_exe = prepare_exe(args.exe)
+
         versions = parse_versions_range(args.versions)
         # Always teardown/recreate Wine prefix
         if args.wine:
@@ -315,7 +454,19 @@ def main():
             subprocess.run(["wineboot", "--shutdown"])
             shutil.rmtree(os.environ["WINEPREFIX"])
             subprocess.run(["wineboot"])
-        run_test(versions, abs_exe, args.wine, args.debug)
+        try:
+            run_test(versions, abs_exe, args.wine, args.debug, args.cover)
+        except UpdateError as e:
+            print(e)
+            if args.diagnose:
+                diagnose_mismatch(e)
+                exit(1)
+            else:
+                print("Run with --diagnose for more information")
+
+        if args.cover:
+            generate_coverage_report(versions, abs_exe)
+
     else:
         print("Must specify action")
         exit(1)

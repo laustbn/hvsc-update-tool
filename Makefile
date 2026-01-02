@@ -18,6 +18,13 @@ debug: build_dir=build/native-debug
 debug: build_type=Debug
 debug: configure compile
 
+# Build with code coverage enabled
+.PHONY: cover
+cover: build_dir=build/native-cover
+cover: build_type=Debug
+cover: extra_flags=-DENABLE_COVERAGE=ON
+cover: configure compile
+
 .PHONY: clean
 clean:
 	rm -rf build

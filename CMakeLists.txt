@@ -9,6 +9,18 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS On)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Extra flags to enable code coverage using Clang
+option(ENABLE_COVERAGE "Enable code coverage reporting" OFF)
+
+if(ENABLE_COVERAGE)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(STATUS "Enabling code coverage flags for Clang")
+    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
+    add_link_options(--coverage)
+  endif()
+endif()
+
+# Any compiler flags must be set above to apply to source files here!
 add_subdirectory(src)
 
 add_executable(hvsc_update_tool src/Update.cpp)

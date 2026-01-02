@@ -21,7 +21,7 @@ bool fileCopy(ErrorLogger err, int line, fs::path inFileName,
     return false;
   }
   if (outFileName.empty()) {
-    err(outFileName.string(), "Malformed input filename", 0);
+    err(outFileName.string(), "Malformed output filename", 0);
     return false;
   }
 

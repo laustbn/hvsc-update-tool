@@ -113,11 +113,13 @@ inline void appExit(int returnValue) {
   if (!SetConsoleMode(hStdin, fdwMode)) newMode = false;
   // If we could not change console mode, better leave immediately.
   if (newMode) {
-    cout << endl << "--- PRESS <RETURN> TO EXIT ---" << endl << flush;
     FlushConsoleInputBuffer(hStdin);
     DWORD count;
     char readBuf[2];
-    if (prompt_user()) ReadConsole(hStdin, &readBuf, 1, &count, 0);
+    if (prompt_user()) {
+      cout << endl << "--- PRESS <RETURN> TO EXIT ---" << endl << flush;
+      ReadConsole(hStdin, &readBuf, 1, &count, 0);
+    }
     SetConsoleMode(hStdin, fdwOldMode);
   }
 #endif
@@ -222,10 +224,9 @@ int main(int, char* argv[]) {
        << endl
        << "(Don't forget to backup your HVSC!)  ";
 
-  cout << "Do you wish to continue? (y/n) : " << flush;
-
-  char cContinue;
   if (prompt_user()) {
+    cout << "Do you wish to continue? (y/n) : " << flush;
+    char cContinue = 0;
     cin >> cContinue;
     cout << endl;
     // Exit if character is anything but 'y' or 'Y'.
@@ -333,6 +334,7 @@ int main(int, char* argv[]) {
         << "'' directory and this update does not depend on it)." << endl
         << "Do you wish to continue? (y/n) : " << flush;
     if (prompt_user()) {
+      char cContinue = 0;
       cin >> cContinue;
       // Exit if character is anything but 'y' or 'Y'.
       if (tolower(cContinue) != 'y') appExit(0);
@@ -441,6 +443,7 @@ int main(int, char* argv[]) {
          << "Errors will likely occur if you continue." << endl
          << "Do you wish to continue? (y/n) : " << flush;
     if (prompt_user()) {
+      char cContinue = 0;
       cin >> cContinue;
       cout << endl;
       // Exit if character is anything but 'y' or 'Y'.

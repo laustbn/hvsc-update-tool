@@ -12,6 +12,8 @@ import re
 import json
 import argparse
 import hashlib
+from urllib.request import Request, urlopen
+from urllib.parse import urlparse
 from concurrent.futures import ProcessPoolExecutor
 
 
@@ -41,21 +43,34 @@ def unrar(*args):
             unrar.exe = ["rar", "x", "-y", "-inul"]
         elif which("unrar"):
             unrar.exe = ["unrar", "x", "-y", "-inul"]
+        elif which("7z"):
+            unrar.exe = ["7z", "x", "-y"]
         else:
             raise Exception("RAR unpacker not found")
     return subprocess.run(unrar.exe + list(args)).returncode
 
 
 def get(url):
-    if not hasattr(get, "exe"):
-        if which("curl"):
-            get.exe = ["curl", "-O"]
-        elif which("wget"):
-            get.exe = ["wget"]
-        else:
-            raise Exception("Downloader not found")
-
-    return subprocess.run(get.exe + [url]).returncode
+    req = Request(url)
+    with urlopen(req) as response:
+        # Try to get filename from server and fall back to parsing URL
+        cd = response.headers.get("Content-Disposition")
+        filename = None
+        if cd:
+            m = re.search(r'filename="?([^\"]+)"?', cd)
+            if m:
+                filename = m.group(1)
+        if not filename:
+            filename = os.path.basename(urlparse(url).path)
+        if not filename:
+            raise Exception(f"Failed to determine filename for download of {url}")
+        print(f"Downloading {filename}")
+        with open(filename, "wb") as f:
+            while True:
+                chunk = response.read(8192)
+                if not chunk:
+                    break
+                f.write(chunk)
 
 
 def hvsc_all_in_one(v):
@@ -71,9 +86,7 @@ def download_file(mirror, filename):
     if os.path.isfile(filename):
         return
     url = f"{mirror}/{filename}"
-    ret = get(url)
-    if ret != 0:
-        raise Exception(f"Download of {url} returned {ret}")
+    get(url)
 
 
 def download_update(mirror, version):
@@ -253,6 +266,9 @@ def parse_versions_range(versions):
 
 
 def main():
+    # See https://docs.python.org/3/library/urllib.request.html
+    os.environ["no_proxy"] = "*"
+
     parser = argparse.ArgumentParser(
         prog="test.py", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )

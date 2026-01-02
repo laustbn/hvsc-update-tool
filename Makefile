@@ -6,34 +6,31 @@ endif
 CLANG_FORMAT ?= clang-format
 CLANG_TIDY ?= clang-tidy
 
+# Default, release build
 .PHONY: build
-build: build/native
+build: build_dir=build/native
+build: build_type=MinSizRel
+build: configure compile
+
+# Build with debug symbols
+.PHONY: debug
+debug: build_dir=build/native-debug
+debug: build_type=Debug
+debug: configure compile
 
 .PHONY: clean
 clean:
 	rm -rf build
 
-.PHONY: configure/native
-configure/native:
-	mkdir -p build/native
-	cd build/native && cmake -DCMAKE_BUILD_TYPE=Debug ../..
+.PHONY: configure
+configure:
+	mkdir -p ${build_dir}
+	cd ${build_dir} && cmake -DCMAKE_BUILD_TYPE=${build_type} ${extra_flags} ../..
 
-build/native: configure/native
-	cd build/native && cmake --build . --parallel 4
+.PHONY: compile
+compile:
+	cd ${build_dir} && cmake --build . --parallel 4
 
-# Cross compilation using GCC
-.PHONY: configure/windows
-configure/windows:
-	mkdir -p build/windows
-	cd build/windows && cmake -DCMAKE_SYSTEM_NAME=Windows \
-	  -DCMAKE_BUILD_TYPE=MinSizeRel \
-      -DCMAKE_C_COMPILER=i686-w64-mingw32-gcc \
-      -DCMAKE_CXX_COMPILER=i686-w64-mingw32-g++ \
-	  -DCMAKE_EXE_LINKER_FLAGS="-static" \
-      ../..
-
-build/windows: configure/windows
-	cd build/windows && cmake --build .
 
 # Cross compilation using Wine & MSVC. You must have added MVSC to path already.
 .PHONY: configure/wine-windows

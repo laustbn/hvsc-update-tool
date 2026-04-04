@@ -3,6 +3,8 @@ ifneq ($(firstword $(sort 4.0 $(MAKE_VERSION))),4.0)
 $(error This Makefile requires GNU Make 4.0 or newer)
 endif
 
+.ONESHELL:
+
 CLANG_FORMAT ?= clang-format
 CLANG_TIDY ?= clang-tidy
 
@@ -53,7 +55,6 @@ build/wine-windows: configure/wine-windows
 EXTENSIONS=*.cpp *.cc *.cxx *.c *.h *.hpp *.hxx
 
 .PHONY: format
-.ONESHELL: format
 format:
 	for ext in ${EXTENSIONS}; do
 	    git ls-files "$$ext"
@@ -62,6 +63,5 @@ format:
 	done
 
 .PHONY: tidy
-.ONESHELL: tidy
 tidy:
 	run-${CLANG_TIDY} -j4 -p build/native -clang-tidy-binary ${CLANG_TIDY}

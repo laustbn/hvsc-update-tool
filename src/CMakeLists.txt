@@ -8,6 +8,7 @@ target_sources(libupdate PRIVATE
   hvscver.cpp
   sidtune.cpp
   helpers.cpp
+  mysidtune.cpp
   fformat/fformat_.cpp
   fformat/pp_.cpp
   fformat/psid_.cpp

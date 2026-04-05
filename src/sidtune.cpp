@@ -6,12 +6,12 @@
 
 #include "sidtune.h"
 
-#include <limits.h>
-#include <string.h>
-
+#include <climits>
+#include <cstring>
 #include <filesystem>
 
 #include "fformat.h"
+#include "hvscver.h"
 #include "myendian.h"
 #include "pp.h"
 
@@ -65,49 +65,25 @@ const char* defaultFileNameExt[] = {
     // Uncut extensions from Amiga.
     ".info", ".INFO", ".data", ".DATA",
     // End.
-    0};
+    nullptr};
 
 // ------------------------------------------------- constructors, destructor
 
-sidTune::sidTune(const char* fileName, const char** fileNameExt) {
+sidTune::sidTune(const char* fileName, HVSCVER hvscVersion)
+    : hvscVersion(hvscVersion),
+      isSlashedFileName(false),
+      fileNameExtensions(defaultFileNameExt) {
   safeConstructor();
-  isSlashedFileName = false;
-  setFileNameExtensions(fileNameExt);
-  if (fileNameExt != 0) {
-    fileNameExtensions = fileNameExt;
-  }
-  if (fileName != 0) {
+
+  if (fileName != nullptr) {
     filesConstructor(fileName);
     deleteFileBuffers();
   }
-}
-
-sidTune::sidTune(const char* fileName, const bool separatorIsSlash,
-                 const char** fileNameExt) {
-  safeConstructor();
-  isSlashedFileName = separatorIsSlash;
-  setFileNameExtensions(fileNameExt);
-  if (fileName != 0) {
-    filesConstructor(fileName);
-    deleteFileBuffers();
-  }
-}
-
-sidTune::sidTune(const ubyte* data, udword dataLen) {
-  safeConstructor();
-  bufferConstructor(data, dataLen);
 }
 
 sidTune::~sidTune() { safeDestructor(); }
 
 // -------------------------------------------------- public member functions
-
-void sidTune::setFileNameExtensions(const char** fileNameExt) {
-  if (fileNameExt != 0)
-    fileNameExtensions = fileNameExt;
-  else
-    fileNameExtensions = defaultFileNameExt;
-}
 
 bool sidTune::load(const ubyte* data, udword dataLen) {
   safeDestructor();
@@ -123,11 +99,6 @@ bool sidTune::open(const char* fileName) {
   filesConstructor(fileName);
   deleteFileBuffers();
   return status;
-}
-
-bool sidTune::setInfo(sidTuneInfo& inInfo) {
-  // dummy
-  return true;
 }
 
 bool sidTune::getInfo(sidTuneInfo& outInfo) {
@@ -251,11 +222,11 @@ udword sidTune::loadFile(const char* fileName, ubyte** bufferRef) {
       myIn.seekg(0, ios::end);
       fileLen = (udword)myIn.tellg();
 #endif
-      if (*bufferRef != 0) {
+      if (*bufferRef != nullptr) {
         delete[] *bufferRef;  // free previously allocated memory
       }
       *bufferRef = new ubyte[fileLen + 1];
-      if (*bufferRef == 0) {
+      if (*bufferRef == nullptr) {
         info.statusString = text_notEnoughMemory;
         fileLen = 0;  // returning 0 = error condition.
       } else {
@@ -630,11 +601,6 @@ bool sidTune::saveC64dataFile(const char* fileName, bool overWriteFlag) {
       fMyOut.close();
     }
   }
-  return success;
-}
-
-bool sidTune::saveSIDfile(const char* fileName, bool overWriteFlag) {
-  bool success = false;  // assume error
   return success;
 }
 

@@ -11,6 +11,8 @@
 
 #include <fstream>
 
+#include "hvscver.h"
+
 using std::ofstream;
 
 #include <filesystem>
@@ -131,13 +133,7 @@ class sidTune {
   // See ``sidtune.cpp'' for the default list of file name extensions.
   // You can specific ``sidTuneFileName = 0'', if you do not want to
   // load a sidtune. You can later load one with open().
-  sidTune(const char* sidTuneFileName, const char** fileNameExt = 0);
-  sidTune(const char* sidTuneFileName, const bool separatorIsSlash,
-          const char** fileNameExt = 0);
-
-  // Load a single-file sidtune from a memory buffer.
-  // Currently supported: PSID format
-  sidTune(const ubyte* oneFileFormatSidtune, udword sidtuneLength);
+  sidTune(const char* sidTuneFileName, HVSCVER hvscVersion);
 
   virtual ~sidTune();  // destructor
 
@@ -151,26 +147,13 @@ class sidTune {
   // Load a sidtune into an existing object.
   // From a file.
   bool open(const char* sidTuneFileName);
-  bool open(const char* sidTuneFileName, const bool separatorIsSlash);
 
   // From a buffer.
   bool load(const ubyte* oneFileFormatSidtune, udword sidtuneLength);
 
   bool getInfo(struct sidTuneInfo&);
-  virtual bool setInfo(struct sidTuneInfo&);  // dummy
 
   ubyte getSongSpeed() { return info.songSpeed; }
-  uword getInitAddr() { return info.initAddr; }
-  uword getPlayAddr() { return info.playAddr; }
-
-  // This function initializes the SID emulator engine to play the given
-  // sidtune song.
-  friend bool sidEmuInitializeSong(emuEngine&, sidTune&, uword songNum);
-
-  // This is an old non-obsolete sub-function, that does not scan the sidtune
-  // for digis. If (emuConfig.digiPlayerScan == 0), this functions does the
-  // same as the one above.
-  friend bool sidEmuInitializeSongOld(emuEngine&, sidTune&, uword songNum);
 
   // Determine current state of object (true = okay, false = error).
   // Upon error condition use ``getInfo'' to get a descriptive
@@ -188,7 +171,6 @@ class sidTune {
   // any file.
   // returns: true = Successful, false = Error condition.
   bool saveC64dataFile(const char* destFileName, bool overWriteFlag = false);
-  bool saveSIDfile(const char* destFileName, bool overWriteFlag = false);
   bool savePSIDfile(std::filesystem::path destFileName,
                     bool overWriteFlag = false);
 
@@ -210,6 +192,7 @@ class sidTune {
  protected:  // -------------------------------------------------------------
   bool status;
   sidTuneInfo info;
+  HVSCVER hvscVersion;
 
   ubyte songSpeed[classMaxSongs];
   ubyte clockSpeed[classMaxSongs];
@@ -243,9 +226,9 @@ class sidTune {
   // Check SidTuneInfo fields for all real c64 only formats
   bool checkRealC64Info(udword speed);
   // Check the init address is legal for real C64 only tunes
-  bool checkCompatibility(void);
+  bool checkCompatibility();
   // Check for valid relocation information
-  bool checkRelocInfo(void);
+  bool checkRelocInfo();
 
   // Copy C64 data from internal cache to C64 memory.
   bool placeSidTuneInC64mem(ubyte* c64buf);

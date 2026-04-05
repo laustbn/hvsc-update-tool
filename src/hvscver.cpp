@@ -1,19 +1,27 @@
 #include "hvscver.h"
 
-#include <stdio.h>
+#include <sstream>
 
-HVSCVER atohvscver(const char *s_version) {
-  int n_major;
-  unsigned int n_minor;
+bool atohvscver(const std::string &s_version, HVSCVER &hvscver) {
+  unsigned int n_major = 0;
+  unsigned int n_minor = 0;
+  char dot = 0;
 
-  n_major = 0;
-  n_minor = 0;
-  sscanf(s_version, "%d.%1u", &n_major, &n_minor);
-  return MAKE_HVSCVER(n_major, n_minor);
+  std::istringstream iss(s_version);
+
+  iss >> n_major >> dot >> n_minor;
+  if (n_major <= 0) {
+    return false;
+  }
+
+  hvscver = MAKE_HVSCVER(n_major, n_minor);
+  return true;
 }
 
-void hvscvertoa(char *s_version, HVSCVER hvscver) {
-  sprintf(s_version, "%d.%1u", HVSCVER_MAJOR(hvscver), HVSCVER_MINOR(hvscver));
+std::string hvscvertoa(HVSCVER hvscver) {
+  std::ostringstream oss;
+  oss << HVSCVER_MAJOR(hvscver) << '.' << HVSCVER_MINOR(hvscver);
+  return oss.str();
 }
 
 int hvscvercmp(HVSCVER a, HVSCVER b) {

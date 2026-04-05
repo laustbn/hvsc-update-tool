@@ -16,8 +16,6 @@ using std::ofstream;
 #include "mytypes.h"
 #include "sidtune.h"
 
-extern HVSCVER HVSCversion_found;
-
 // Header has been extended for 'RSID' format
 // The following changes are present:
 //     id = 'RSID'

@@ -1,12 +1,13 @@
-#ifndef mysidtune_h
-#define mysidtune_h
+#pragma once
 
 #include "Mode.h"
+#include "hvscver.h"
 
 class mySidTune : public sidTune {
  public:  // --------------------------------------------------------- public
   // Only derive the simple constructor.
-  mySidTune(const char* fileName) : sidTune(fileName) {};
+  mySidTune(const char* fileName, HVSCVER hvscVersion)
+      : sidTune(fileName, hvscVersion) {};
 
   bool writeToSidTune(char newInfoString[][maxSidInfoLen + 1], Mode mode) {
     // PSID-format can only handle up to 31 characters plus a terminating zero.
@@ -265,5 +266,3 @@ class mySidTune : public sidTune {
 
   };  // writeToSidTune
 };  // mySidTune
-
-#endif  // mysidtune_h

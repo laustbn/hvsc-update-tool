@@ -157,7 +157,7 @@ bool sidTune::PSID_fileSupport(const void* buffer, udword bufLen) {
     return false;
   }
 
-  if (hvscvercmp(HVSCversion_found, HVSCVersion_v2NGCompatible) >= 0) {
+  if (hvscvercmp(hvscVersion, HVSCVersion_v2NGCompatible) >= 0) {
     if (checkRelocInfo() == false) {
       info.formatString = _sidtune_reloc;
       return false;
@@ -200,7 +200,7 @@ bool sidTune::PSID_fileSupportSave(ofstream& fMyOut, const ubyte* dataBuffer) {
   if (info.musPlayer) tmpFlags |= PSID_MUS;
 
   // These fields exist in v2NG only.
-  if (hvscvercmp(HVSCversion_found, HVSCVersion_v2NGCompatible) >= 0) {
+  if (hvscvercmp(hvscVersion, HVSCVersion_v2NGCompatible) >= 0) {
     if (info.compatibility == SIDTUNE_COMPATIBILITY_PSID)
       tmpFlags |= PSID_SPECIFIC;
     else if (info.compatibility == SIDTUNE_COMPATIBILITY_BASIC)
@@ -216,7 +216,7 @@ bool sidTune::PSID_fileSupportSave(ofstream& fMyOut, const ubyte* dataBuffer) {
   // fully v2NG compatible (i.e. 32-bit v2 'reserved' field may
   // contain garbage), then the below two fields are zeroed out.
 
-  if (hvscvercmp(HVSCversion_found, HVSCVersion_v2NGCompatible) < 0) {
+  if (hvscvercmp(hvscVersion, HVSCVersion_v2NGCompatible) < 0) {
     myHeader.relocStartPage[0] = 0;
     myHeader.relocPages[0] = 0;
   } else {

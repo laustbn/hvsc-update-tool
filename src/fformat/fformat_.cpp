@@ -10,15 +10,6 @@
 #include "fformat.h"
 #include "myendian.h"
 
-// Own version of strdup, which uses new instead of malloc.
-char* myStrDup(const char* source) {
-  char* dest;
-  if ((dest = new char[strlen(source) + 1]) != 0) {
-    strcpy(dest, source);
-  }
-  return dest;
-}
-
 // Return pointer to file name position in complete path.
 char* fileNameWithoutPath(char* s) {
 #if _MSVC_LANG >= 201703L

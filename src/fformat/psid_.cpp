@@ -4,6 +4,8 @@
 
 #include "psid_.h"
 
+#include <algorithm>
+
 #define PSID_ID 0x50534944
 #define RSID_ID 0x52534944
 
@@ -16,7 +18,7 @@ static const char _sidtune_truncated[] = "ERROR: File is most likely truncated";
 static const char _sidtune_invalid[] = "ERROR: File contains invalid data";
 static const char _sidtune_reloc[] = "ERROR: File contains bad reloc data";
 
-const int _sidtune_psid_maxStrLen = 32;
+const size_t _sidtune_psid_maxStrLen = 32;
 
 // Denotes the first version of HVSC that was fully v2NG compatible (i.e. no
 // garbage in the 32-bit 'reserved' field).
@@ -167,14 +169,14 @@ bool sidTune::PSID_fileSupport(const void* buffer, udword bufLen) {
   // Copy info strings, so they will not get lost.
   info.numberOfInfoStrings = 3;
   // Name
-  strncpy(&infoString[0][0], pHeader->name, _sidtune_psid_maxStrLen);
-  info.infoString[0] = &infoString[0][0];
+  infoString[0] = std::string(pHeader->name, _sidtune_psid_maxStrLen);
+  info.infoString[0] = infoString[0];
   // Author
-  strncpy(&infoString[1][0], pHeader->author, _sidtune_psid_maxStrLen);
-  info.infoString[1] = &infoString[1][0];
+  infoString[1] = std::string(pHeader->author, _sidtune_psid_maxStrLen);
+  info.infoString[1] = infoString[1];
   // Copyright
-  strncpy(&infoString[2][0], pHeader->copyright, _sidtune_psid_maxStrLen);
-  info.infoString[2] = &infoString[2][0];
+  infoString[2] = std::string(pHeader->copyright, _sidtune_psid_maxStrLen);
+  info.infoString[2] = infoString[2];
   return true;
 }
 
@@ -225,14 +227,19 @@ bool sidTune::PSID_fileSupportSave(ofstream& fMyOut, const ubyte* dataBuffer) {
   }
 
   writeBEword(myHeader.reserved, 0);
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < _sidtune_psid_maxStrLen; i++) {
     myHeader.name[i] = 0;
     myHeader.author[i] = 0;
     myHeader.copyright[i] = 0;
   }
-  strncpy(myHeader.name, info.infoString[0], _sidtune_psid_maxStrLen);
-  strncpy(myHeader.author, info.infoString[1], _sidtune_psid_maxStrLen);
-  strncpy(myHeader.copyright, info.infoString[2], _sidtune_psid_maxStrLen);
+
+  char* dsts[3] = {myHeader.name, myHeader.author, myHeader.copyright};
+  for (int n = 0; n < 3; n++) {
+    size_t length =
+        std::min(info.infoString[n].size(), _sidtune_psid_maxStrLen);
+    // Buffer is already zeroed out
+    info.infoString[n].copy(dsts[n], length);
+  }
 
   switch (info.compatibility) {
     case SIDTUNE_COMPATIBILITY_BASIC:

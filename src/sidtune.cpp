@@ -17,25 +17,16 @@
 
 using std::ios;
 
-const char text_songNumberExceed[] =
-    "WARNING: Selected song number was too high";
 const char text_emptyFile[] = "ERROR: File is empty";
 const char text_unrecognizedFormat[] = "ERROR: Could not determine file format";
-const char text_noDataFile[] =
-    "ERROR: Did not find the corresponding data file";
 const char text_notEnoughMemory[] = "ERROR: Not enough free memory";
 const char text_cantLoadFile[] = "ERROR: Could not load input file";
 const char text_cantOpenFile[] = "ERROR: Could not open file for binary input";
-const char text_fileTooLong[] = "ERROR: Input data too long";
 const char text_dataTooLong[] = "ERROR: Music data size exceeds C64 memory";
 const char text_cantCreateFile[] = "ERROR: Could not create output file";
 const char text_fileIoError[] = "ERROR: File I/O error";
 const char text_fatalInternal[] =
     "FATAL: Internal error - contact the developers";
-const char text_PAL_VBI[] = "50 Hz VBI (PAL)";
-const char text_PAL_CIA[] = "CIA 1 Timer A (PAL)";
-const char text_NTSC_VBI[] = "60 Hz VBI (NTSC)";
-const char text_NTSC_CIA[] = "CIA 1 Timer A (NTSC)";
 const char text_noErrors[] = "No errors";
 const char text_na[] = "N/A";
 
@@ -70,9 +61,7 @@ const char* defaultFileNameExt[] = {
 // ------------------------------------------------- constructors, destructor
 
 sidTune::sidTune(const char* fileName, HVSCVER hvscVersion)
-    : hvscVersion(hvscVersion),
-      isSlashedFileName(false),
-      fileNameExtensions(defaultFileNameExt) {
+    : hvscVersion(hvscVersion), fileNameExtensions(defaultFileNameExt) {
   safeConstructor();
 
   if (fileName != nullptr) {
@@ -84,61 +73,6 @@ sidTune::sidTune(const char* fileName, HVSCVER hvscVersion)
 sidTune::~sidTune() { safeDestructor(); }
 
 // -------------------------------------------------- public member functions
-
-bool sidTune::load(const ubyte* data, udword dataLen) {
-  safeDestructor();
-  safeConstructor();
-  bufferConstructor(data, dataLen);
-  return status;
-}
-
-bool sidTune::open(const char* fileName) {
-  safeDestructor();
-  safeConstructor();
-  isSlashedFileName = false;
-  filesConstructor(fileName);
-  deleteFileBuffers();
-  return status;
-}
-
-bool sidTune::getInfo(sidTuneInfo& outInfo) {
-  outInfo = info;
-  return true;
-}
-
-// First check, whether a song is valid. Then copy any song-specific
-// variable information such a speed/clock setting to the info structure.
-//
-// This is a private member function. It is used only by player.cpp.
-uword sidTune::selectSong(uword selectedSong) {
-  // Determine and set starting song number.
-  if (selectedSong == 0) {
-    selectedSong = info.startSong;
-  } else if ((selectedSong > info.songs) || (selectedSong > classMaxSongs)) {
-    info.statusString = text_songNumberExceed;
-    selectedSong = info.startSong;
-  }
-  info.lengthInSeconds = songLength[selectedSong - 1];
-  // Retrieve song speed definition.
-  info.songSpeed = songSpeed[selectedSong - 1];
-  info.clockSpeed = clockSpeed[selectedSong - 1];
-  // Assign song speed description string depending on clock speed.
-  if (info.clockSpeed == SIDTUNE_CLOCK_PAL) {
-    if (info.songSpeed == SIDTUNE_SPEED_VBI) {
-      info.speedString = text_PAL_VBI;
-    } else {
-      info.speedString = text_PAL_CIA;
-    }
-  } else  // if (info.clockSpeed == SIDTUNE_CLOCK_NTSC)
-  {
-    if (info.songSpeed == SIDTUNE_SPEED_VBI) {
-      info.speedString = text_NTSC_VBI;
-    } else {
-      info.speedString = text_NTSC_CIA;
-    }
-  }
-  return (info.currentSong = selectedSong);
-}
 
 void sidTune::fixLoadAddress(bool force, uword init, uword play) {
   if (info.fixLoad || force) {
@@ -154,8 +88,6 @@ void sidTune::fixLoadAddress(bool force, uword init, uword play) {
 }
 
 // ------------------------------------------------- private member functions
-
-void sidTune::setIRQaddress(uword address) { info.irqAddr = address; }
 
 bool sidTune::placeSidTuneInC64mem(ubyte* c64buf) {
   if (isCached && status) {
@@ -271,16 +203,6 @@ void sidTune::deleteFileBuffers() {
   }
 }
 
-void sidTune::deleteFileNameCopies() {
-  // When will it be fully safe to call delete[] (0)?
-  if (info.dataFileName != 0) delete[] info.dataFileName;
-  if (info.infoFileName != 0) delete[] info.infoFileName;
-  if (info.path != 0) delete[] info.path;
-  info.dataFileName = 0;
-  info.infoFileName = 0;
-  info.path = 0;
-}
-
 bool sidTune::cacheRawData(const void* sourceBuf, udword sourceBufLen) {
   clearCache();
   if ((cachePtr = new ubyte[sourceBufLen]) == 0) {
@@ -327,7 +249,6 @@ void sidTune::safeConstructor() {
   status = false;
 
   info.statusString = text_na;
-  info.path = info.infoFileName = info.dataFileName = 0;
   info.dataFileLen = info.c64dataLen = 0;
   info.formatString = text_na;
   info.speedString = text_na;
@@ -356,104 +277,17 @@ void sidTune::safeConstructor() {
   fileOffset = 0;
   fileNameExtensions = defaultFileNameExt;
 
-  for (uint sNum = 0; sNum < infoStringNum; sNum++) {
-    for (uint sPos = 0; sPos < infoStringLen; sPos++) {
-      infoString[sNum][sPos] = 0;
-    }
-  }
   info.numberOfInfoStrings = 0;
-
-  // Not used!!!
-  info.numberOfCommentStrings = 1;
-  info.commentString = new char*[info.numberOfCommentStrings];
-  info.commentString[0] = myStrDup("--- SAVED WITH SIDPLAY ---");
 }
 
 void sidTune::safeDestructor() {
-  // Remove copy of comment field.
-  udword strNum = 0;
-  // Check and remove every available line.
-  while (info.numberOfCommentStrings-- > 0) {
-    if (info.commentString[strNum] != 0) {
-      delete[] info.commentString[strNum];
-      info.commentString[strNum] = 0;
-    }
-    strNum++;  // next string
-  };
-  delete[] info.commentString;  // free the array pointer
-
   clearCache();
-  deleteFileNameCopies();
   deleteFileBuffers();
 
   status = false;
 }
 
-void sidTune::bufferConstructor(const ubyte* data, udword dataLen) {
-  // Assume a failure, so we can simply return.
-  status = false;
-  if (data != 0) {
-    if (dataLen > maxSidtuneFileLen) {
-      info.statusString = text_fileTooLong;
-    } else {
-      info.dataFileLen = dataLen;
-      getSidtuneFromFileBuffer(data, dataLen);
-    }
-  }
-}
-
-bool sidTune::getSidtuneFromFileBuffer(const ubyte* buffer, udword bufferLen) {
-  bool foundFormat = false;
-  // Here test for the possible single file formats. ------------------
-  if (PSID_fileSupport(buffer, bufferLen)) {
-    foundFormat = true;
-  } else {
-    // No further single-file-formats available. --------------------
-    info.formatString = text_na;
-    info.statusString = text_unrecognizedFormat;
-    status = false;
-  }
-  if (foundFormat) {
-    status = true;
-    info.statusString = text_noErrors;
-    acceptSidTune("-", "-", buffer, bufferLen);
-  }
-  return foundFormat;
-}
-
-void sidTune::acceptSidTune(const char* dataFileName, const char* infoFileName,
-                            const ubyte* dataBuf, udword dataLen) {
-  deleteFileNameCopies();
-  // Make a copy of the data file name and path, if available.
-  if (dataFileName != 0) {
-    info.path = myStrDup(dataFileName);
-    if (isSlashedFileName) {
-      info.dataFileName = myStrDup(slashedFileNameWithoutPath(info.path));
-      *slashedFileNameWithoutPath(info.path) = 0;  // path only
-    } else {
-      info.dataFileName = myStrDup(fileNameWithoutPath(info.path));
-      *fileNameWithoutPath(info.path) = 0;  // path only
-    }
-    if ((info.path == 0) || (info.dataFileName == 0)) {
-      info.statusString = text_notEnoughMemory;
-      status = false;
-      return;
-    }
-  }
-  // Make a copy of the info file name, if available.
-  if (infoFileName != 0) {
-    char* tmp = myStrDup(infoFileName);
-    if (isSlashedFileName)
-      info.infoFileName = myStrDup(slashedFileNameWithoutPath(tmp));
-    else
-      info.infoFileName = myStrDup(fileNameWithoutPath(tmp));
-    if ((tmp == 0) || (info.infoFileName == 0)) {
-      info.statusString = text_notEnoughMemory;
-      status = false;
-      return;
-    }
-    delete[] tmp;
-  }
+void sidTune::acceptSidTune(const ubyte* dataBuf, udword dataLen) {
   // Fix bad sidtune set up.
   if (info.songs > classMaxSongs)
     info.songs = classMaxSongs;
@@ -468,24 +302,6 @@ void sidTune::acceptSidTune(const char* dataFileName, const char* infoFileName,
   cacheRawData(dataBuf, dataLen);
 }
 
-bool sidTune::createNewFileName(char** destStringPtr, const char* sourceName,
-                                const char* sourceExt) {
-  // Free any previously allocated object.
-  if (*destStringPtr != 0) {
-    delete[] *destStringPtr;
-  }
-  // Get enough memory, so we can appended the extension.
-  *destStringPtr = new char[strlen(sourceName) + strlen(sourceExt) + 1];
-  if (*destStringPtr == 0) {
-    info.statusString = text_notEnoughMemory;
-    return (status = false);
-  }
-  strcpy(*destStringPtr, sourceName);
-  char* extPtr = fileExtOfPath(*destStringPtr);
-  strcpy(extPtr, sourceExt);
-  return true;
-}
-
 // Initializing the object based upon what we find in the specified file.
 
 void sidTune::filesConstructor(const char* fileName) {
@@ -494,7 +310,7 @@ void sidTune::filesConstructor(const char* fileName) {
   if ((info.dataFileLen = loadFile(fileName, &fileBuf)) != 0) {
     // File loaded. Now check if it is in a valid single-file-format.
     if (PSID_fileSupport(fileBuf, info.dataFileLen)) {
-      acceptSidTune(fileName, 0, fileBuf, info.dataFileLen);
+      acceptSidTune(fileBuf, info.dataFileLen);
       return;
     }
 

@@ -15,7 +15,9 @@
 
 using std::ofstream;
 
+#include <array>
 #include <filesystem>
+#include <string>
 
 #include "mytypes.h"
 
@@ -91,19 +93,14 @@ struct sidTuneInfo {
   // Song title, credits, ...
   //
   ubyte numberOfInfoStrings;  // the number of available text info lines
-  char* infoString[infoStringNum];
-  char* nameString;    // name, author and copyright strings
-  char* authorString;  // are duplicates of infoString[?]
-  char* copyrightString;
-  //
-  uword numberOfCommentStrings;  // --- not yet supported ---
-  char** commentString;          // -"-
+  std::array<std::string, infoStringNum> infoString;
+  std::string nameString;    // name, author and copyright strings
+  std::string authorString;  // are duplicates of infoString[?]
+  std::string copyrightString;
+
   //
   udword dataFileLen;  // length of single-file sidtune file
   udword c64dataLen;   // length of raw C64 data without load address
-  char* path;          // path to sidtune files; 0, if cwd
-  char* dataFileName;  // a first file: e.g. ``*.c64''
-  char* infoFileName;  // a second file: e.g. ``*.sid''
   //
   const char* statusString;  // error/status message of last operation
 };
@@ -143,15 +140,6 @@ class sidTune {
   // so make sure you keep it. If the provided pointer is 0, the
   // default list will be activated.
   void setFileNameExtensions(const char** fileNameExt);
-
-  // Load a sidtune into an existing object.
-  // From a file.
-  bool open(const char* sidTuneFileName);
-
-  // From a buffer.
-  bool load(const ubyte* oneFileFormatSidtune, udword sidtuneLength);
-
-  bool getInfo(struct sidTuneInfo&);
 
   ubyte getSongSpeed() { return info.songSpeed; }
 
@@ -199,13 +187,11 @@ class sidTune {
   uword songLength[classMaxSongs];  // song lengths in seconds
 
   // holds text info from the format headers etc.
-  char infoString[infoStringNum][infoStringLen];
+  std::array<std::string, 4> infoString;
 
   bool isCached;
   ubyte* cachePtr;
   udword cacheLen;
-
-  bool isSlashedFileName;
 
   // Using external buffers for loading files instead of the interpreter
   // memory. This separates the sidtune objects from the interpreter.
@@ -249,23 +235,13 @@ class sidTune {
   void safeConstructor();
   void safeDestructor();
   void filesConstructor(const char* name);
-  void bufferConstructor(const ubyte* data, udword dataLen);
-
-  uword selectSong(uword selectedSong);
-  void setIRQaddress(uword address);
 
   void clearCache();
 
   void deleteFileBuffers();
-  void deleteFileNameCopies();
-  // Try to retrieve single-file sidtune from specified buffer.
-  bool getSidtuneFromFileBuffer(const ubyte* buffer, udword bufferLen);
   // Cache the data of a single-file or two-file sidtune and its
   // corresponding file names.
-  void acceptSidTune(const char* dataFileName, const char* infoFileName,
-                     const ubyte* dataFileBuf, udword dataLen);
-  bool createNewFileName(char** destStringPtr, const char* sourceName,
-                         const char* sourceExt);
+  void acceptSidTune(const ubyte* dataFileBuf, udword dataLen);
 };
 
 #endif

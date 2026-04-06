@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
 # Code for test harness. Download/prep/test. Diagnosis feature requires
 # 3.14. The rest should work with (somewhat) older versions.
@@ -18,6 +19,81 @@ from urllib.parse import urlparse
 from concurrent.futures import ProcessPoolExecutor
 
 
+def _ascii(byte: int) -> str:
+    return chr(byte) if 32 <= byte <= 126 else "."
+
+
+# This was cranked out by CoPilot and lightly edited. It seems to work
+def hexdiff(a: bytes, b: bytes, *, width: int = 16, base_offset: int = 0) -> str:
+    """
+    Return a plain-text hex diff of two byte buffers.
+
+    Format (per row):
+      offset  a_hex  a_ascii  |  b_hex  b_ascii
+              markers-under-a-hex         markers-under-b-hex
+    Markers: '^^' under bytes that differ (or exist only on one side).
+    """
+    out = []
+    n = max(len(a), len(b))
+
+    for off in range(0, n, width):
+        aa = a[off : off + width]
+        bb = b[off : off + width]
+
+        a_hex = []
+        b_hex = []
+        a_mrk = []
+        b_mrk = []
+        a_asc = []
+        b_asc = []
+
+        for i in range(width):
+            ai = aa[i] if i < len(aa) else None
+            bi = bb[i] if i < len(bb) else None
+            diff = ai != bi
+
+            if ai is None:
+                a_hex.append("  ")
+                a_mrk.append("  ")
+                a_asc.append(" ")
+            else:
+                a_hex.append(f"{ai:02X}")
+                a_mrk.append("^^" if diff else "  ")
+                a_asc.append(_ascii(ai))
+
+            if bi is None:
+                b_hex.append("  ")
+                b_mrk.append("  ")
+                b_asc.append(" ")
+            else:
+                b_hex.append(f"{bi:02X}")
+                b_mrk.append("^^" if diff else "  ")
+                b_asc.append(_ascii(bi))
+
+        # Optional extra space in the middle like classic hexdumps
+        def _join_hex(parts):
+            if width == 16:
+                return " ".join(parts[:8]) + "  " + " ".join(parts[8:])
+            return " ".join(parts)
+
+        a_hex_s = _join_hex(a_hex)
+        b_hex_s = _join_hex(b_hex)
+        a_mrk_s = _join_hex(a_mrk)
+        b_mrk_s = _join_hex(b_mrk)
+
+        out.append(
+            f"{base_offset + off:08X}  "
+            f"{a_hex_s}  |{''.join(a_asc)}|  ||  "
+            f"{b_hex_s}  |{''.join(b_asc)}|"
+        )
+
+        # Only show marker line if there is any difference on this row
+        if any(m.strip() for m in a_mrk) or any(m.strip() for m in b_mrk):
+            out.append(f"{'':8}  {a_mrk_s}  {' ' * (1 + width)}   ||  {b_mrk_s}")
+
+    return "\n".join(out)
+
+
 @contextlib.contextmanager
 def chdir(directory):
     old = os.getcwd()
@@ -34,6 +110,7 @@ REF = "all-hashes.json"
 
 DEFAULT_COVER_EXE = "../build/native-cover/hvsc_update_tool"
 DEFAULT_EXE = "../build/native/hvsc_update_tool"
+DEFAULT_DEBUG_EXE = "../build/native-debug/hvsc_update_tool"
 
 
 class UpdateError(Exception):
@@ -84,6 +161,13 @@ def unrar(*args):
         else:
             raise Exception("RAR unpacker not found")
     return subprocess.run(unrar.exe + list(args)).returncode
+
+
+def get_buffer(url):
+    print(f"Downloading {url}")
+    req = Request(url)
+    with urlopen(req) as response:
+        return response.read()
 
 
 def get(url):
@@ -225,12 +309,28 @@ def prepare_for_updates(versions):
 def load_zstd_sums(fn):
     # Needs Python 3.14
     from compression import zstd
+
     with zstd.open(fn) as f:
         sums = json.load(f)
     return sums
 
 
-def diagnose_mismatch(e):
+def diff_file(sum_line: str, version: int):
+    # sum_line has the format
+    # ^SHA1SHA1SHA1SHA1SHA1SHA1SHA1SHA1SHA1 *./dir/filename
+    fn = sum_line.split(" ")[1].removeprefix("*.")
+    url = f"{MIRROR}/debug/archive/{version}/C64Music{fn}"
+
+    ref = get_buffer(url)
+    local = f"{HVSC_LOC}/test/C64Music{fn}"
+    with open(local, "rb") as f:
+        actual = f.read()
+
+    print("Showing diff of EXPECTED | ACTUAL")
+    print(hexdiff(ref, actual))
+
+
+def diagnose_mismatch(e: UpdateError):
     """Attempt to diagnose a mismatch between expected sum and actual"""
     # Download all sums for update
     version = e.version
@@ -255,12 +355,13 @@ def diagnose_mismatch(e):
     print(f"{len(actual_sums)} sums found but not expected")
     print(f"{len(expected_sums)} sums expected but not found")
 
-    # We still don't have anything to go on except the hashes, so just print
-    # some of the sums and affected files. Actually showing diffs would be nice
-    # but also require access to all unpacked HVSC releases.
-    print("Ten files with incorrect hashes:")
-    for i in range(10):
-        print(actual_sums.pop())
+    # We still don't have anything to go on except the hashes, so just print the
+    # diff of a random file. Reference files are downloaded from a server for
+    # convenience and not cached.
+    print("Random file with incorrect hash:")
+    tmp = actual_sums.pop()
+    print(tmp)
+    diff_file(tmp, version)
 
 
 # Download all-in-ones, unpack, and generate checksums. Slow so it doesn't run
@@ -441,9 +542,15 @@ def main():
     if args.action == "prepare":
         prepare(range(44, 84))
     elif args.action == "test":
+        if args.cover and args.debug:
+            print("Cannot specify cover and debug at the same time")
+            exit(1)
+        # Change defaults depending on build type, but allow override
         if args.cover and args.exe == parser.get_default("exe"):
             # Change the default exe
             abs_exe = prepare_exe(DEFAULT_COVER_EXE)
+        elif args.debug and args.exe == parser.get_default("exe"):
+            abs_exe = prepare_exe(DEFAULT_DEBUG_EXE)
         else:
             abs_exe = prepare_exe(args.exe)
 

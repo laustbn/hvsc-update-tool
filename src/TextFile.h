@@ -36,9 +36,6 @@ struct UpdateReader {
   // Current line
   string lineBuf;
 
-  // Offset into current line
-  int offset = 0;
-
   // Total size (in bytes)
   size_t size = 0;
 

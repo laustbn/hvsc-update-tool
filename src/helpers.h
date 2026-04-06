@@ -15,6 +15,8 @@ bool makeHVSCdir(ErrorLogger err, int line, std::filesystem::path hvscPath);
 bool fileCopy(ErrorLogger err, int line, std::filesystem::path inFileName,
               std::filesystem::path outFileName);
 
+std::string to_lower(std::string s);
+
 // TODO shouldn't be used in release mode
 #if defined(_MSC_VER)
 #define DEBUGGER __debugbreak()
@@ -23,9 +25,3 @@ bool fileCopy(ErrorLogger err, int line, std::filesystem::path inFileName,
 #elif defined(__GNUC__)
 #define DEBUGGER __builtin_trap()
 #endif
-
-static std::string to_lower(std::string s) {
-  std::transform(s.begin(), s.end(), s.begin(),
-                 [](unsigned char c) { return std::tolower(c); });
-  return std::move(s);
-}

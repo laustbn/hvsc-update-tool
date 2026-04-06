@@ -193,7 +193,7 @@ bool sidTune::PSID_fileSupportSave(ofstream& fMyOut, const ubyte* dataBuffer) {
 
   udword speed = 0;
   udword maxBugSongs = ((info.songs <= 32) ? info.songs : 32);
-  for (int s = 0; s < maxBugSongs; s++) {
+  for (unsigned int s = 0; s < maxBugSongs; s++) {
     if (songSpeed[s] == SIDTUNE_SPEED_CIA_1A) speed |= (1 << s);
   }
   writeBEdword(myHeader.speed, speed);
@@ -227,7 +227,7 @@ bool sidTune::PSID_fileSupportSave(ofstream& fMyOut, const ubyte* dataBuffer) {
   }
 
   writeBEword(myHeader.reserved, 0);
-  for (int i = 0; i < _sidtune_psid_maxStrLen; i++) {
+  for (size_t i = 0; i < _sidtune_psid_maxStrLen; i++) {
     myHeader.name[i] = 0;
     myHeader.author[i] = 0;
     myHeader.copyright[i] = 0;

@@ -38,7 +38,7 @@ enum class Mode {
 #undef X
 };
 
-static const std::string mode_to_string(Mode mode) {
+[[maybe_unused]] static const std::string mode_to_string(Mode mode) {
   switch (mode) {
 #define X(name) \
   case Mode::name: \
@@ -51,7 +51,7 @@ static const std::string mode_to_string(Mode mode) {
   }
 }
 
-static std::optional<Mode> string_to_mode(const std::string& in) {
+[[maybe_unused]] static std::optional<Mode> string_to_mode(const std::string& in) {
 #define X(name) \
   if (in == #name) return Mode::name;
   MODE_ENUM_LIST(X)
@@ -71,7 +71,7 @@ static constexpr Mode must_string_to_mode(const std::string_view& in) {
 }
 
 
-static int mode_to_int(Mode m) {
+[[maybe_unused]] static int mode_to_int(Mode m) {
   int x = 0;
 #define X(name) \
   if (m == Mode::name) return x; \

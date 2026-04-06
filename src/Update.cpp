@@ -25,6 +25,9 @@ using std::endl;
 #include <filesystem>
 namespace fs = std::filesystem;
 
+#include <array>
+#include <string>
+
 #if defined(_MSC_VER)
 #include <windows.h>
 #endif
@@ -604,7 +607,7 @@ int main(int, char* argv[]) {
       case Mode::MOVE:
       case Mode::REPLACE: {
         auto err = mkErrorLogger(errorFile, mode, errorCount);
-        auto result = move_replace(mode == Mode::MOVE, updateFile, err);
+        move_replace(mode == Mode::MOVE, updateFile, err);
         break;
       }
 

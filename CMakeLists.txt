@@ -12,6 +12,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Extra flags to enable code coverage using Clang
 option(ENABLE_COVERAGE "Enable code coverage reporting" OFF)
 
+set(COMMON_FLAGS "-Wall -Wextra -Wpedantic")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -Werror -Wc++17-compat -fstrict-enums")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -Werror -Wconversion -Wshadow")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /WX")
+endif()
+
+
 if(ENABLE_COVERAGE)
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(STATUS "Enabling code coverage flags for Clang")

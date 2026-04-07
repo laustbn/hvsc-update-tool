@@ -16,11 +16,14 @@ bool fileCopy(ErrorLogger err, int line, std::filesystem::path inFileName,
 
 std::string to_lower(std::string s);
 
-// TODO shouldn't be used in release mode
+#ifdef NDEBUG
 #if defined(_MSC_VER)
 #define DEBUGGER __debugbreak()
 #elif defined(__CLANG__)
 #define DEBUGGER __builtin_debugtrap()
 #elif defined(__GNUC__)
 #define DEBUGGER __builtin_trap()
+#endif
+#else
+#define DEBUGGER /* no op */
 #endif

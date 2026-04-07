@@ -83,7 +83,14 @@ ErrorLogger mkErrorLogger(ofstream& errorFile, Mode mode, int& errorCount) {
 // Returns false if user prompting is disabled by setting the HVSC_NO_PROMPT
 // environment variable. This is to facilitate automated testing.
 bool prompt_user() {
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
   auto str = std::getenv("HVSC_NO_PROMPT");
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
   return str == nullptr;
 }
 
@@ -259,7 +266,7 @@ int main(int, char* argv[]) {
       std::optional<HeaderReader> open_hvsids;
       try {
         open_hvsids = HeaderReader(hvsidsFileName.string());
-      } catch (const std::exception& e) {
+      } catch (const std::exception&) {
         continue;
       }
       HeaderReader hvsidsFile = std::move(open_hvsids.value());

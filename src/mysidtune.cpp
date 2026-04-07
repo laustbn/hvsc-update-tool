@@ -84,15 +84,16 @@ bool mySidTune::writeToSidTune(const std::array<std::string, 4>& newInfoString,
 
       // Only 32 song speed can be set with the below code assuming
       // an unsigned long stores 32 bits.
-      if (sizeof(ulSpeed) >= 4) {
+      if constexpr (sizeof(ulSpeed) >= 4) {
         // Not modifiable!
         if (info.compatibility == SIDTUNE_COMPATIBILITY_R64) return false;
         // SPEED string is in hex.
         ulSpeed = my_strtoul(newInfoString[0], 16);
         convertOldStyleSpeedToTables((udword)ulSpeed);
         break;
-      } else
-        return false;
+      } else {
+        static_assert(sizeof(ulSpeed) >= 4, "Platform not supported");
+      }
     }
 
     case Mode::SONGS:  // SONGS string must have a comma!

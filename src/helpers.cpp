@@ -64,7 +64,6 @@ bool fileCopy(ErrorLogger err, int line, fs::path inFileName,
 bool getHVSCpath(fs::path &outPath, const fs::path &srcPath, const int debug) {
   outPath.clear();
   outPath.append("..");
-  const bool checkAmbiguous = false;
 
   if (debug > 0) cout << "Starting to find " << srcPath << endl;
 
@@ -93,7 +92,7 @@ bool getHVSCpath(fs::path &outPath, const fs::path &srcPath, const int debug) {
              << endl;
 
       if (to_lower(dir_entry.path().filename().string()) == lc) {
-        if (checkAmbiguous && found) {
+        if (found) {
           // If multiple entries match input, it is
           // ambiguous. Old code didn't care about this.
         }
@@ -190,7 +189,8 @@ bool makeHVSCdir(ErrorLogger err, int line, fs::path hvscPath) {
 }
 
 std::string to_lower(std::string s) {
-  std::transform(s.begin(), s.end(), s.begin(),
-                 [](unsigned char c) { return std::tolower(c); });
+  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+    return static_cast<char>(std::tolower(c));
+  });
   return s;
 }

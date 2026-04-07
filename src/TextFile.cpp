@@ -14,7 +14,8 @@ UpdateReader::UpdateReader(const std::string &fileName) : inFile(fileName) {
   if (!inFile) {
     throw std::runtime_error("Failed to open file: " + fileName);
   }
-  size = std::filesystem::file_size(fileName);
+  // Breaks > 4GB which we accept as a limitation
+  size = static_cast<size_t>(std::filesystem::file_size(fileName));
 }
 
 // Check whether the first non-space character is a ``#'' or ``;''.
@@ -49,7 +50,7 @@ bool UpdateReader::NextLine() {
   return false;
 }
 
-size_t UpdateReader::Pos() { return inFile.tellg(); }
+size_t UpdateReader::Pos() { return static_cast<size_t>(inFile.tellg()); }
 
 int UpdateReader::GetLineNum() { return line; }
 

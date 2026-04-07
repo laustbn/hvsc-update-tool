@@ -136,7 +136,7 @@ bool sidTune::PSID_fileSupport(const void* buffer, udword bufLen) {
       return false;
     }
     // Real C64 tunes appear as CIA
-    speed = ~0;
+    speed = ~0ul;
   }
   // Create the speed/clock setting table.
   convertOldStyleSpeedToTables(speed, clock);

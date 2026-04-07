@@ -5,31 +5,10 @@
 #ifndef fformat_h
 #define fformat_h
 
-#include <string.h>
-
 #include <sstream>
 
-#include "config.h"
 #include "mytypes.h"
 using std::istringstream;
-
-#if defined(HAVE_STRCASECMP)
-#undef stricmp
-#define stricmp strcasecmp
-#endif
-
-#if defined(HAVE_STRNCASECMP)
-#undef strnicmp
-#define strnicmp strncasecmp
-#endif
-
-// Wrapper for ``strnicmp'' without third argument.
-inline int myStrNcaseCmp(const char* s1, const char* s2) {
-  return strnicmp(s1, s2, strlen(s2));
-}
-
-// Own version of strdup, which uses new instead of malloc.
-extern char* myStrDup(const char* source);
 
 // Return pointer to file name position in complete path.
 extern char* fileNameWithoutPath(char* s);

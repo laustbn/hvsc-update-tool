@@ -35,27 +35,28 @@ bool mySidTune::writeToSidTune(const std::array<std::string, 4>& newInfoString,
   // A copy of the private instance of the sidTuneInfo structure can be read
   // out using ::returnInfo().
 
-  int infoStringIndex = 0;  // Used for FLAGS case.
+  size_t infoStringIndex = 0;  // Used for FLAGS case.
 
   switch (mode) {
     case Mode::TITLE:
     case Mode::AUTHOR:
     case Mode::RELEASED: {
       // Copy string to private array.
-      infoString[(int)mode] = newInfoString[(int)mode];
-
-      info.infoString[(int)mode] = &infoString[(int)mode][0];
+      infoString[static_cast<size_t>(mode)] =
+          newInfoString[static_cast<size_t>(mode)];
+      info.infoString[static_cast<size_t>(mode)] =
+          &infoString[static_cast<size_t>(mode)][0];
 
       if (Mode::TITLE == mode)
         // Assign pointer: First infoString usually is NAME.
-        info.nameString = infoString[(int)mode][0];
+        info.nameString = infoString[static_cast<size_t>(mode)][0];
       else if (Mode::AUTHOR == mode)
         // Assign pointer: Second infoString usually is AUTHOR.
-        info.authorString = infoString[(int)mode][0];
+        info.authorString = infoString[static_cast<size_t>(mode)][0];
       else
         // Assign pointer: Third infoString usually is RELEASED
         // (original release information).
-        info.copyrightString = infoString[(int)mode][0];
+        info.copyrightString = infoString[static_cast<size_t>(mode)][0];
       break;
     }
 
@@ -108,8 +109,8 @@ bool mySidTune::writeToSidTune(const std::array<std::string, 4>& newInfoString,
       auto songs = newInfoString[0].substr(0, index);
       auto start = newInfoString[0].substr(index + 1);
 
-      info.songs = my_strtoul(songs, 10);
-      info.startSong = my_strtoul(start, 10);
+      info.songs = static_cast<ubyte>(my_strtoul(songs, 10));
+      info.startSong = static_cast<ubyte>(my_strtoul(start, 10));
       break;
     }
 

@@ -5,7 +5,7 @@
 
 class PathSplitter {
  private:
-  std::filesystem::path path;
+  std::filesystem::path path_;
   std::filesystem::path::iterator it;
   std::filesystem::path::iterator last;
 

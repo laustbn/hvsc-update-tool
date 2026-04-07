@@ -364,10 +364,10 @@ int main(int, char* argv[]) {
         break;
       }
 
-      if (auto k = updateFile.FindKey("#PreviousVersion:")) {
-        found_prev = atohvscver(k.value(), HVSCversion.required);
-      } else if (auto k = updateFile.FindKey("#ResultingVersion:")) {
-        found_resulting = atohvscver(k.value(), HVSCversion.resulting);
+      if (auto k1 = updateFile.FindKey("#PreviousVersion:")) {
+        found_prev = atohvscver(k1.value(), HVSCversion.required);
+      } else if (auto k2 = updateFile.FindKey("#ResultingVersion:")) {
+        found_resulting = atohvscver(k2.value(), HVSCversion.resulting);
       }
     }
 
@@ -447,7 +447,7 @@ int main(int, char* argv[]) {
 
   ofstream errorFile(errorsFileName.c_str());
 
-  fastPercent updateProgress(updateFile.Size() + 1);
+  fastPercent updateProgress(static_cast<int>(updateFile.Size() + 1));
   cout << "Working : ";
   updateProgress.cout();
 
@@ -458,7 +458,7 @@ int main(int, char* argv[]) {
   Mode mode = Mode::NO_MODE;
   while (updateFile.NextLine())  // line-by-line loop
   {
-    updateProgress.update(updateFile.Pos());
+    updateProgress.update(static_cast<int>(updateFile.Pos()));
     if (updateProgress.changed()) updateProgress.coutUpdate();
 
     // Find the Mode.  Compare current line to all of the keywords
@@ -507,7 +507,7 @@ int main(int, char* argv[]) {
           std::array<std::string, 4> sidInfo = {};
 
           if (Mode::CREDITS == mode) {
-            for (int n = 0; n < 3; n++) {
+            for (size_t n = 0; n < 3; n++) {
               if (!updateFile.NextLine())
                 logError(errorFile, tmpSource.string(),
                          "Premature end of update script?",
@@ -537,7 +537,7 @@ int main(int, char* argv[]) {
                        "SID credit string too long.", updateFile.GetLineNum(),
                        mode, errorCount);
             }
-            sidInfo[mode_to_int(mode)] = updateFile.GetLine();
+            sidInfo[mode_to_size_t(mode)] = updateFile.GetLine();
           } else if (Mode::FIXLOAD == mode) {
             ;
           }

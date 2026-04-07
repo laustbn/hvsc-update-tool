@@ -64,7 +64,7 @@ union cpuLBword {
 // Convert high-byte and low-byte to 16-bit word.
 // Used to read 16-bit words in little-endian order.
 inline uword readEndian(ubyte hi, ubyte lo) {
-  return (((uword)hi << 8) + (uword)lo);
+  return (((uword)hi << 8) | (uword)lo);
 }
 
 // Convert high bytes and low bytes of MSW and LSW to 32-bit word.
@@ -88,8 +88,8 @@ inline void writeLEword(ubyte ptr[2], uword someWord) {
 #if defined(WORDS_LITTLEENDIAN) && defined(OPTIMIZE_ENDIAN_ACCESS)
   *((uword*)ptr) = someWord;
 #else
-  ptr[0] = (someWord & 0xFF);
-  ptr[1] = (someWord >> 8);
+  ptr[0] = static_cast<ubyte>(someWord & 0xFF);
+  ptr[1] = static_cast<ubyte>(someWord >> 8);
 #endif
 }
 
@@ -98,7 +98,7 @@ inline uword readBEword(const ubyte ptr[2]) {
 #if defined(WORDS_BIGENDIAN) && defined(OPTIMIZE_ENDIAN_ACCESS)
   return *((uword*)ptr);
 #else
-  return ((((uword)ptr[0]) << 8) + ((uword)ptr[1]));
+  return ((((uword)ptr[0]) << 8) | ((uword)ptr[1]));
 #endif
 }
 
@@ -117,8 +117,8 @@ inline void writeBEword(ubyte ptr[2], uword someWord) {
 #if defined(WORDS_BIGENDIAN) && defined(OPTIMIZE_ENDIAN_ACCESS)
   *((uword*)ptr) = someWord;
 #else
-  ptr[0] = someWord >> 8;
-  ptr[1] = someWord & 0xFF;
+  ptr[0] = static_cast<ubyte>(someWord >> 8);
+  ptr[1] = static_cast<ubyte>(someWord & 0xFF);
 #endif
 }
 
@@ -127,7 +127,7 @@ inline void writeBEdword(ubyte ptr[4], udword someDword) {
 #if defined(WORDS_BIGENDIAN) && defined(OPTIMIZE_ENDIAN_ACCESS)
   *((udword*)ptr) = someDword;
 #else
-  ptr[0] = someDword >> 24;
+  ptr[0] = static_cast<ubyte>(someDword >> 24);
   ptr[1] = (someDword >> 16) & 0xFF;
   ptr[2] = (someDword >> 8) & 0xFF;
   ptr[3] = someDword & 0xFF;
@@ -138,7 +138,7 @@ inline void writeBEdword(ubyte ptr[4], udword someDword) {
 inline uword convertEndianess(uword intelword) {
   uword hi = intelword >> 8;
   uword lo = intelword & 255;
-  return ((lo << 8) + hi);
+  return ((lo << 8) | hi);
 }
 
 // Convert 32-bit little-endian word to big-endian order or vice versa.

@@ -71,7 +71,7 @@ static constexpr Mode must_string_to_mode(const std::string_view& in) {
 }
 
 
-[[maybe_unused]] static int mode_to_int(Mode m) {
+[[maybe_unused]] static size_t mode_to_size_t(Mode m) {
   int x = 0;
 #define X(name) \
   if (m == Mode::name) return x; \

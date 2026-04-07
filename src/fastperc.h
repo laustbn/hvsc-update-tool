@@ -9,7 +9,7 @@ using std::flush;
 class fastPercent {
  public:
   void init(int max, bool inChokeCheck = false) {
-    onePercent = nextPercentMark = max / (float)100.0;
+    onePercent = nextPercentMark = (float)max / (float)100.0;
     percent = prevPercent = 0;
     chokeCheck = inChokeCheck;
   };
@@ -17,7 +17,7 @@ class fastPercent {
   fastPercent(int max, bool inChokeCheck = false) { init(max, inChokeCheck); };
 
   void update(int current) {
-    while (current >= nextPercentMark) {
+    while ((float)current >= nextPercentMark) {
       if (percent < 100) percent++;
       nextPercentMark += onePercent;
     }

@@ -17,61 +17,12 @@ char* fileNameWithoutPath(char* s) {
 #else
   const char sep = '\\';
 #endif
-  int last_slash_pos = -1;
-  for (int pos = strlen(s); pos >= 0; pos--) {
+  for (size_t pos = strlen(s); pos > 0; pos--) {
     if (s[pos] == sep) {
-      last_slash_pos = pos;
-      break;
+      return (&s[pos + 1]);
     }
   }
-  return (&s[last_slash_pos + 1]);
-}
-
-// Return pointer to file name position in complete path.
-// Special version: file separator = forward slash.
-char* slashedFileNameWithoutPath(char* s) {
-  int last_slash_pos = -1;
-  for (uint pos = 0; pos < strlen(s); pos++) {
-    if (s[pos] == '/') {
-      last_slash_pos = pos;
-    }
-  }
-  return (&s[last_slash_pos + 1]);
-}
-
-// Return pointer to file name extension in path.
-// The backwards-version.
-char* fileExtOfPath(char* s) {
-  uint last_dot_pos = strlen(s);  // assume no dot and append
-  for (int pos = last_dot_pos; pos >= 0; --pos) {
-    if (s[pos] == '.') {
-      last_dot_pos = pos;
-      break;
-    }
-  }
-  return (&s[last_dot_pos]);
-}
-
-// Parse input string stream. Read and convert a hexa-decimal number up
-// to a ``,'' or ``:'' or ``\0'' or end of stream.
-udword readHex(istringstream& hexin) {
-  udword hexLong = 0;
-  char c;
-  do {
-    hexin >> c;
-    if (!hexin) break;
-    if ((c != ',') && (c != ':') && (c != 0)) {
-      // machine independed to_upper
-      c &= 0xdf;
-      (c < 0x3a) ? (c &= 0x0f) : (c -= (0x41 - 0x0a));
-      hexLong <<= 4;
-      hexLong |= (udword)c;
-    } else {
-      if (c == 0) hexin.putback(c);
-      break;
-    }
-  } while (hexin);
-  return hexLong;
+  return 0;
 }
 
 // Parse input string stream. Read and convert a decimal number up

@@ -25,7 +25,8 @@ const size_t _sidtune_psid_maxStrLen = 32;
 static const HVSCVER HVSCVersion_v2NGCompatible = MAKE_HVSCVER(3, 9);
 
 bool sidTune::PSID_fileSupport(const void* buffer, udword bufLen) {
-  int clock, compatibility;
+  ubyte clock;
+  int compatibility;
   udword speed;
   clock = SIDTUNE_CLOCK_UNKNOWN;
   compatibility = SIDTUNE_COMPATIBILITY_C64;
@@ -159,7 +160,7 @@ bool sidTune::PSID_fileSupport(const void* buffer, udword bufLen) {
     return false;
   }
 
-  if (hvscvercmp(hvscVersion, HVSCVersion_v2NGCompatible) >= 0) {
+  if (hvscvercmp(hvscVersion_, HVSCVersion_v2NGCompatible) >= 0) {
     if (checkRelocInfo() == false) {
       info.formatString = _sidtune_reloc;
       return false;
@@ -202,7 +203,7 @@ bool sidTune::PSID_fileSupportSave(ofstream& fMyOut, const ubyte* dataBuffer) {
   if (info.musPlayer) tmpFlags |= PSID_MUS;
 
   // These fields exist in v2NG only.
-  if (hvscvercmp(hvscVersion, HVSCVersion_v2NGCompatible) >= 0) {
+  if (hvscvercmp(hvscVersion_, HVSCVersion_v2NGCompatible) >= 0) {
     if (info.compatibility == SIDTUNE_COMPATIBILITY_PSID)
       tmpFlags |= PSID_SPECIFIC;
     else if (info.compatibility == SIDTUNE_COMPATIBILITY_BASIC)
@@ -218,7 +219,7 @@ bool sidTune::PSID_fileSupportSave(ofstream& fMyOut, const ubyte* dataBuffer) {
   // fully v2NG compatible (i.e. 32-bit v2 'reserved' field may
   // contain garbage), then the below two fields are zeroed out.
 
-  if (hvscvercmp(hvscVersion, HVSCVersion_v2NGCompatible) < 0) {
+  if (hvscvercmp(hvscVersion_, HVSCVersion_v2NGCompatible) < 0) {
     myHeader.relocStartPage[0] = 0;
     myHeader.relocPages[0] = 0;
   } else {
@@ -258,8 +259,8 @@ bool sidTune::PSID_fileSupportSave(ofstream& fMyOut, const ubyte* dataBuffer) {
 
   // Save C64 lo/hi load address (little-endian).
   ubyte saveAddr[2];
-  saveAddr[0] = info.loadAddr & 255;
-  saveAddr[1] = info.loadAddr >> 8;
+  saveAddr[0] = static_cast<ubyte>(info.loadAddr & 255);
+  saveAddr[1] = static_cast<ubyte>(info.loadAddr >> 8);
   fMyOut.write((char*)saveAddr, 2);  // !cast!
 
   // Data starts at: bufferaddr + fileoffset

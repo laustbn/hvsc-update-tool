@@ -30,10 +30,10 @@ const udword maxSidtuneFileLen = 65536 + 2 + 0x7C;  // C64KB+LOAD+PSID
 const int SIDTUNE_SPEED_VBI = 0;      // Vertical-Blanking-Interrupt
 const int SIDTUNE_SPEED_CIA_1A = 60;  // CIA 1 Timer A
 
-const int SIDTUNE_CLOCK_UNKNOWN = 0;  // These are also used in the
-const int SIDTUNE_CLOCK_PAL = 1;      // emulator engine!
-const int SIDTUNE_CLOCK_NTSC = 2;
-const int SIDTUNE_CLOCK_ANY = SIDTUNE_CLOCK_PAL | SIDTUNE_CLOCK_NTSC;
+const ubyte SIDTUNE_CLOCK_UNKNOWN = 0;  // These are also used in the
+const ubyte SIDTUNE_CLOCK_PAL = 1;      // emulator engine!
+const ubyte SIDTUNE_CLOCK_NTSC = 2;
+const ubyte SIDTUNE_CLOCK_ANY = SIDTUNE_CLOCK_PAL | SIDTUNE_CLOCK_NTSC;
 
 const int SIDTUNE_SIDMODEL_UNKNOWN = 0;
 const int SIDTUNE_SIDMODEL_6581 = 1;
@@ -180,10 +180,9 @@ class sidTune {
  protected:  // -------------------------------------------------------------
   bool status;
   sidTuneInfo info;
-  HVSCVER hvscVersion;
+  HVSCVER hvscVersion_;
 
   ubyte songSpeed[classMaxSongs];
-  ubyte clockSpeed[classMaxSongs];
   uword songLength[classMaxSongs];  // song lengths in seconds
 
   // holds text info from the format headers etc.

@@ -34,18 +34,6 @@ extern char* myStrDup(const char* source);
 // Return pointer to file name position in complete path.
 extern char* fileNameWithoutPath(char* s);
 
-// Return pointer to file name position in complete path.
-// Special version: file separator = forward slash.
-extern char* slashedFileNameWithoutPath(char* s);
-
-// Return pointer to file name extension in path.
-// Searching backwards until first dot is found.
-extern char* fileExtOfPath(char* s);
-
-// Parse input string stream. Read and convert a hexa-decimal number up
-// to a ``,'' or ``:'' or ``\0'' or end of stream.
-extern udword readHex(istringstream& parseStream);
-
 // Parse input string stream. Read and convert a decimal number up
 // to a ``,'' or ``:'' or ``\0'' or end of stream.
 extern udword readDec(istringstream& parseStream);

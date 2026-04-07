@@ -61,7 +61,7 @@ const char* defaultFileNameExt[] = {
 // ------------------------------------------------- constructors, destructor
 
 sidTune::sidTune(const char* fileName, HVSCVER hvscVersion)
-    : hvscVersion(hvscVersion), fileNameExtensions(defaultFileNameExt) {
+    : hvscVersion_(hvscVersion), fileNameExtensions(defaultFileNameExt) {
   safeConstructor();
 
   if (fileName != nullptr) {
@@ -266,7 +266,6 @@ void sidTune::safeConstructor() {
 
   for (uint si = 0; si < classMaxSongs; si++) {
     songSpeed[si] = SIDTUNE_SPEED_VBI;
-    clockSpeed[si] = SIDTUNE_CLOCK_PAL;
     songLength[si] = 0;
   }
 
@@ -340,7 +339,8 @@ void sidTune::filesConstructor(const char* fileName) {
   }
 }
 
-void sidTune::convertOldStyleSpeedToTables(udword oldStyleSpeed, int clock) {
+void sidTune::convertOldStyleSpeedToTables(udword oldStyleSpeed,
+                                           int /*clock*/) {
   // Create the speed/clock setting tables.
   //
   // This does not take into account the PlaySID bug upon evaluating the
@@ -351,7 +351,6 @@ void sidTune::convertOldStyleSpeedToTables(udword oldStyleSpeed, int clock) {
 
   int toDo = ((info.songs <= classMaxSongs) ? info.songs : classMaxSongs);
   for (int s = 0; s < toDo; s++) {
-    clockSpeed[s] = clock;
     if (((oldStyleSpeed >> (s & 31)) & 1) == 0)
       songSpeed[s] = SIDTUNE_SPEED_VBI;
     else
@@ -402,8 +401,8 @@ bool sidTune::saveC64dataFile(const char* fileName, bool overWriteFlag) {
     } else {
       // Save c64 lo/hi load address.
       ubyte saveAddr[2];
-      saveAddr[0] = info.loadAddr & 255;
-      saveAddr[1] = info.loadAddr >> 8;
+      saveAddr[0] = static_cast<ubyte>(info.loadAddr & 0xff);
+      saveAddr[1] = static_cast<ubyte>(info.loadAddr >> 8);
       fMyOut.write((char*)saveAddr, 2);
       // Data starts at: bufferaddr + fileOffset
       // Data length: info.dataFileLen - fileOffset
@@ -505,7 +504,7 @@ bool sidTune::checkRelocInfo(void) {
 
   // Calculate start/end page
   startp = info.relocStartPage;
-  endp = (startp + info.relocPages - 1) & 0xff;
+  endp = (startp + info.relocPages - 1u) & 0xff;
   if (endp < startp) return false;
 
   {  // Check against load range

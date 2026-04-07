@@ -3,6 +3,7 @@
 #include "helpers.h"
 
 // for old implementation
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>

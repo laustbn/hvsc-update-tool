@@ -287,9 +287,10 @@ def generate_hash(directory):
         return (sha, all_sums)
 
 
-def generate_hashes(versions):
-    hashes = dict()
+def generate_hashes(versions, hashes):
     for v in versions:
+        if f"{v}" in hashes:
+            continue
         (h, all_sums) = generate_hash(f"{v}")
         hashes[v] = h
     return hashes
@@ -367,11 +368,16 @@ def diagnose_mismatch(e: UpdateError):
 # Download all-in-ones, unpack, and generate checksums. Slow so it doesn't run
 # by default.
 def prepare(versions):
+    with open(REF, "r") as file:
+        hashes = json.load(file)
+
     with chdir(HVSC_LOC):
         for v in versions:
+            if f"{v}" in hashes:
+                continue
             download_all_in_one(MIRROR, v)
             unpack_all_in_one(v, f"{v}")
-        hashes = generate_hashes(versions)
+        generate_hashes(versions, hashes)
         hashes_str = json.dumps(hashes, indent=2)
     with open(REF, "w") as file:
         file.write(hashes_str)
@@ -500,7 +506,7 @@ def main():
     )
     parser.add_argument(
         "--versions",
-        default="44,83",
+        default="44,84",
         help="Range of versions to test. n is unpacked; n+1 to m applied as updates",
         metavar="n,m",
     )
@@ -539,8 +545,9 @@ def main():
     if not os.path.isdir(HVSC_LOC):
         os.mkdir(HVSC_LOC)
 
+    versions = parse_versions_range(args.versions)
     if args.action == "prepare":
-        prepare(range(44, 84))
+        prepare(versions)
     elif args.action == "test":
         if args.cover and args.debug:
             print("Cannot specify cover and debug at the same time")
@@ -554,7 +561,6 @@ def main():
         else:
             abs_exe = prepare_exe(args.exe)
 
-        versions = parse_versions_range(args.versions)
         # Always teardown/recreate Wine prefix
         if args.wine:
             os.environ["WINEPREFIX"] = f"{os.getcwd()}/wine_prefix"

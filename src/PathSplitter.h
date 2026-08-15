@@ -1,39 +1,23 @@
-#ifndef PathSplitter_h
+#pragma once
 
-#include <string.h>
-#include "max.h"
+#include <filesystem>
+#include <string>
 
-class PathSplitter
-{
-    struct charBuffer
-    {
-        char* ptr;
-        int len;
-    };
-    
+class PathSplitter {
  private:
-    const int maxPathLen;
+  std::filesystem::path path_;
+  std::filesystem::path::iterator it;
+  std::filesystem::path::iterator last;
 
-    charBuffer splitPath;
-
-    int splitOffset;      // offset to current directory in path
-    int lastSplitOffset;  // offset to last directory in path
-
-    bool validInput;
-    
  public:
-    PathSplitter(const char* pathName);
-    ~PathSplitter(void);
-    
-    const char* getFile(void);
-    
-    bool isGood(void);
-    bool isLastFile(void);
-    
-    void firstFile(void);
-    void lastFile(void);
-    bool nextFile(void);
-    
-};
+  PathSplitter(const std::filesystem::path path);
 
-#endif  // PathSplitter_h
+  const std::string getFile();
+
+  bool isGood();
+  bool isLastFile();
+
+  void firstFile();
+  void lastFile();
+  bool nextFile();
+};

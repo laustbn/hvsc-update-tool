@@ -544,6 +544,9 @@ def main():
 
     if not os.path.isdir(HVSC_LOC):
         os.mkdir(HVSC_LOC)
+        cache_sig = "Signature: 8a477f597d28d172789f06886806bc55"
+        with open(f"{HVSC_LOC}/CACHEDIR.TAG", "w") as f:
+            f.write(cache_sig)
 
     versions = parse_versions_range(args.versions)
     if args.action == "prepare":

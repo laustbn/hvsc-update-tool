@@ -16,6 +16,13 @@ bool fileCopy(ErrorLogger err, int line, std::filesystem::path inFileName,
 
 std::string to_lower(std::string s);
 
+inline std::string path_for_display(std::filesystem::path p) {
+#ifdef _WIN32
+    p.make_preferred();
+#endif
+    return p.string();
+}
+
 #ifdef NDEBUG
 #if defined(_MSC_VER)
 #define DEBUGGER __debugbreak()

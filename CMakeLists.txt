@@ -2,7 +2,28 @@ cmake_minimum_required(VERSION 3.16)
 project(hvsc_update_tool)
 
 # Defines the version reported by the update tool
-SET(BUILD_VERSION "2.8.9")
+set(VERSION_FILE "${CMAKE_SOURCE_DIR}/VERSION")
+
+# Treat as input and reconfigure if it changes
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${VERSION_FILE}")
+
+file(READ "${VERSION_FILE}" BUILD_VERSION_RAW)
+string(STRIP "${BUILD_VERSION_RAW}" BUILD_VERSION)
+
+if(BUILD_VERSION STREQUAL "")
+  message(FATAL_ERROR "VERSION file is empty")
+endif()
+
+message(STATUS "Build version: ${BUILD_VERSION}")
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+include(GitVersion)  # loads cmake/GitVersion.cmake
+
+configure_file(
+  "src/git_version.h.in"
+  "git_version.h"
+  @ONLY
+)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS On)
 

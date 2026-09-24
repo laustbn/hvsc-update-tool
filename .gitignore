@@ -1,3 +1,7 @@
 build/
 .cache/
 compile_commands.json
+
+tools_*
+test.stdout
+test.stderr

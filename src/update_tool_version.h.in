@@ -1,7 +1,2 @@
-// CMake
-#ifndef update_tool_version_h
-#define update_tool_version_h
-
+#pragma once
 #define HVSC_VERSION_STRING "@BUILD_VERSION@"
-
-#endif

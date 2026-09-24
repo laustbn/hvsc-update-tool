@@ -5,19 +5,18 @@
 #ifndef PP__H
 #define PP__H
 
+#include <fstream>
 
 #include "config.h"
-
-#include <fstream>
 using std::ifstream;
 
 #include <iostream>
 using std::ios;
 
-#include <string.h>
 #include <limits.h>
-#include "mytypes.h"
-#include "myendian.h"
+#include <string.h>
 
+#include "myendian.h"
+#include "mytypes.h"
 
 #endif
